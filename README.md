@@ -2,16 +2,10 @@
 
 A [Next.js](https://nextjs.org) progressive web app. This guide covers getting the project onto your machine, the git workflow we use, and running the app locally.
 
-## Prerequisites
-
-- [Node.js](https://nodejs.org) (LTS) and npm
-- [Git](https://git-scm.com)
-- A GitHub account with access to the repository
-
 ## 1. Clone the project
 
 ```bash
-git clone https://github.com/<org-or-user>/central_node_pwa.git
+git clone https://github.com/Toast1e/central_node_pwa.git
 cd central_node_pwa
 npm install
 ```
@@ -29,14 +23,8 @@ The terminal will print two URLs:
 - Network:  http://192.xxx.xxx.xxx:3000
 ```
 
-- **Local** – open this in a browser on the same machine.
+- **Local** – open this in a browser of the machine.
 - **Network** – open this on any other device (phone, tablet, laptop) connected to the **same Wi-Fi / LAN** to test the app there. The IP address is your machine's local network address and will differ per machine.
-
-If the Network URL does not appear, start the server bound to all interfaces:
-
-```bash
-npm run dev -- -H 0.0.0.0
-```
 
 Other scripts:
 
