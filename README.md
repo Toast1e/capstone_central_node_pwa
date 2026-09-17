@@ -5,7 +5,7 @@ A [Next.js](https://nextjs.org) progressive web app. This guide covers getting t
 ## 1. Clone the project
 
 ```bash
-git clone https://github.com/Toast1e/central_node_pwa.git
+git clone https://github.com/Toast1e/capstone_central_node_pwa.git
 cd central_node_pwa
 npm install
 ```
