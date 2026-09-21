@@ -51,7 +51,7 @@ git pull origin main
 Branch names use the ticket ID followed by a short, kebab-case description:
 
 ```
-BUS-<ticket-number>-<short-description>
+CAPST-<ticket-number>-<short-description>
 ```
 
 Examples: `BUS-93-login-page`, `BUS-104-fix-navbar-overflow`
