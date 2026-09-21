@@ -1,0 +1,11 @@
+/* Centers the login card on the screen */
+.login-page {
+  min-height: 100vh;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-holder {
+  text-align: center;
+  padding: 12px 0;
+}

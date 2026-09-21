@@ -92,8 +92,37 @@ git pull origin main
 ## Project structure
 
 ```
-app/          Pages, layouts and global styles (Next.js App Router)
-public/       Static assets
+src/
+  app/            Routes only (Next.js App Router) - thin files that wire things up
+    layout.jsx      Root layout: <html>, Ant Design setup, providers
+    providers.jsx   Ant Design theme + AuthProvider
+    login/          /login - stands alone, no app bar
+    (main)/         Pages that use MainLayout   -> /home, /profile
+  layouts/        MainLayout (page content + bottom app bar)
+  views/          The actual page components (Login, Home, Profile)
+  components/     Shared components (RequireAuth)
+  contexts/       React contexts (AuthContext)
+public/           Static assets
 next.config.ts
 package.json
 ```
+
+A folder in parentheses is a [route group](https://nextjs.org/docs/app/api-reference/file-conventions/route-groups): it picks the layout but does not appear in the URL. Every page inside `(main)` gets the bottom app bar.
+
+The Home and Profile pages currently hold **example content only**, to demonstrate the components and the navigation.
+
+> **Do not create a `src/pages` folder.** Next.js reserves that name for its older Pages Router and would turn every file in it into a URL. Page components go in `src/views`.
+
+### Adding a page
+
+1. Create the component in `src/views/<Name>/<Name>.jsx`. Start the file with `"use client";` if it uses Ant Design components, state or event handlers.
+2. Create `src/app/(main)/<url>/page.jsx` that imports and renders it (copy `src/app/(main)/home/page.jsx`).
+3. To show it in the bottom app bar, add an entry to `NAV_ITEMS` in `src/layouts/MainLayout.jsx`.
+
+### Authentication
+
+The app has login only - there is no registration. Authentication is currently **stubbed**: the login form checks nothing and every login succeeds. `src/contexts/AuthContext.jsx` holds the placeholder `login()` and an `AUTH_ENABLED` flag (off). When it is switched on, `RequireAuth` redirects signed-out visitors away from every page in `(main)` to `/login`.
+
+### Styling
+
+UI components come from [Ant Design](https://ant.design); the brand colour is set once in `src/app/providers.jsx`. Ant Design's styles are placed in a CSS layer (see `src/app/globals.css`), so rules in our own `.css` files always override its defaults without needing `!important`.
