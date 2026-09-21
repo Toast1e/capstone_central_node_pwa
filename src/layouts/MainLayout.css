@@ -1,0 +1,54 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scroll */
+  /* Prevent overscroll bounce on mobile */
+  overscroll-behavior: none;
+}
+
+.layout {
+  min-height: 100vh;
+}
+
+.content {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+  padding-bottom: 85px; /* Keep content clear of the fixed app bar */
+}
+
+/* Bottom app bar - fixed to the bottom of the screen */
+.app-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 69px;
+  padding: 0 16px;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  /* Prevent touch events from affecting positioning */
+  touch-action: manipulation;
+}
+
+.app-bar-items {
+  height: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Stack the icon above the label */
+.app-bar-button {
+  flex-direction: column;
+  gap: 2px;
+  height: auto;
+  min-width: 72px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
