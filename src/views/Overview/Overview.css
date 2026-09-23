@@ -1,0 +1,13 @@
+.pageGrid{
+  display: grid;
+  justify-content: space-evenly;
+  gap: 8pt;
+  grid-template-columns: repeat(auto-fit, minmax(300pt, 1fr));
+  margin-bottom: 24px;
+}
+
+.elementGrid{
+  display: block;
+  background-color: white;
+  border-radius: 4pt;
+}

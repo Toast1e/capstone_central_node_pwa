@@ -9,3 +9,9 @@
   text-align: center;
   padding: 12px 0;
 }
+
+.checkboxCentering{
+  display: block;
+  justify-self: center;
+  width: 100%;
+}

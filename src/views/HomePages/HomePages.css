@@ -1,0 +1,40 @@
+.pageForm{
+  background-color: wheat;
+  color: black;
+  padding: 10pt;
+  margin-top: 55pt;
+}
+
+.pageFlex{
+  display: flex;
+  justify-content: space-evenly;
+  border-width: 1pt;
+  border-color: black;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+.elementFlex{
+  display: block;
+  margin-top: 5pt;
+  background-color: white;
+}
+
+.highRiskContainer{
+  display: block;
+  background-color: lightcoral;
+  border-radius: 4pt;
+}
+
+.moderateRiskContainer{
+  display: block;
+  background-color: rgb(190, 160, 100);
+  border-radius: 4pt;
+}
+
+.lowRiskContainer{
+  display: block;
+  background-color: lightgreen;
+  border-radius: 4pt;
+}
