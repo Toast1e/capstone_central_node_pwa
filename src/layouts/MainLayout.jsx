@@ -44,8 +44,10 @@ export default function MainLayout({ children }) {
               >
                 {item.label}
               </Button>
+              
             );
           })}
+          <Button> Press me Toast Man</Button>
         </Flex>
       </Footer>
     </Layout>
