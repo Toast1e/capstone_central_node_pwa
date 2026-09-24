@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout, Card, Form, Input, Button } from "antd";
+import { Layout, Checkbox, Card, Form, Input, Button } from "antd";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
@@ -16,12 +16,13 @@ export default function Login() {
   };
 
   return (
+
     <Layout className="login-page">
       <Card
         title={
           <div className="logo-holder">
             <div style={{ fontSize: 32, fontWeight: 600, marginBottom: "8px" }}>
-              Central Node
+              VitiSense
             </div>
             <div>Login</div>
           </div>
@@ -29,16 +30,28 @@ export default function Login() {
         style={{ width: 300 }}
       >
         <Form name="login" onFinish={onFinish} autoComplete="off">
-          <Form.Item name="username">
-            <Input placeholder="Username or Email" disabled={loading} />
-          </Form.Item>
+
+          <Card style={{ justifyContent: "center", alignItems: "center", marginBottom: "16px", backgroundColor: "lightgreen" }}>
+            {/* Add wifi logo later on */}
+            <p>Connected to local vineyard hotspot</p>
+          </Card>
+
+          <h1>Central Node 1</h1>
+
           <Form.Item name="password">
             <Input.Password placeholder="Password" disabled={loading} />
+          </Form.Item>
+          <Form.Item name="remember" valuePropName="checked" label={null}>
+            <Checkbox>Keep me signed in this phone</Checkbox>
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit" block loading={loading}>
               Login
             </Button>
+            <br />
+            No Connection?
+            <br />
+            <a href="">Open Last saved readings</a>
           </Form.Item>
         </Form>
       </Card>
