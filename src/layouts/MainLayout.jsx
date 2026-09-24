@@ -2,7 +2,7 @@
 
 import { Layout, Flex, Button } from "antd";
 import { useRouter, usePathname } from "next/navigation";
-import { RiHome5Line, RiUserLine } from "@remixicon/react";
+import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
 
 const { Content, Footer } = Layout;
@@ -10,6 +10,9 @@ const { Content, Footer } = Layout;
 // Add an entry here (plus a page under src/app/(main)/) to extend the app bar.
 const NAV_ITEMS = [
   { key: "home", label: "Home", path: "/home", icon: <RiHome5Line /> },
+  { key: "alerts", label: "Alerts", path: "/alerts", icon: <RiNotification2Line /> },
+  { key: "nodes", label: "Nodes", path: "/nodes", icon: <RiCpuLine /> },
+  { key: "export", label: "Export", path: "/export", icon: <RiExportLine /> },
   { key: "profile", label: "Profile", path: "/profile", icon: <RiUserLine /> },
 ];
 
