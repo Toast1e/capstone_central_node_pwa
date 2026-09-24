@@ -1,10 +1,13 @@
 "use client";
 
-import { Layout, Flex, Button } from "antd";
+import { Layout, Flex, Button, Typography } from "antd";
 import { useRouter, usePathname } from "next/navigation";
-import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
+import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine, RiFontSize2 } from "@remixicon/react";
 import "./MainLayout.css";
+import { Header } from "antd/es/layout/layout";
+import path from "path";
 
+const { Text } = Typography;
 const { Content, Footer } = Layout;
 
 // Add an entry here (plus a page under src/app/(main)/) to extend the app bar.
@@ -19,9 +22,30 @@ const NAV_ITEMS = [
 export default function MainLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
+  const centralNode = "Central node 1";
+  let isOnline = true;
 
   return (
     <Layout className="layout">
+      {/* Top app bar */}
+      <Header className="top-app-bar" color={isOnline ? "primary" : "default"}>
+        <Flex align="center" className="top-app-bar-items" justify="space-between">
+          <Flex gap={"5pt"}>
+            <Text strong className="textSize">
+              {centralNode} |
+            </Text>
+
+            <Text type={isOnline ? "success" : "warning"} strong className="textSize">
+              {isOnline ? "Live" : "Offline"}
+            </Text>
+          </Flex>
+
+          <Text strong className="textSize">
+            {NAV_ITEMS.find(options => options.path == pathname).label}
+          </Text>
+        </Flex>
+      </Header>
+
       <Content className="content">{children}</Content>
 
       {/* Bottom app bar */}

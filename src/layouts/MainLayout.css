@@ -18,7 +18,27 @@ body {
   max-width: 960px;
   margin: 0 auto;
   padding: 16px;
+  padding-top: 60px; /* Keep content clear of the fixed app bar */
   padding-bottom: 85px; /* Keep content clear of the fixed app bar */
+}
+
+.textSize{
+  font-size: large;
+}
+
+/* Top app bar - fixed to the top of the screen */
+.top-app-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  /* Prevent touch events from affecting positioning */
+  touch-action: manipulation;
 }
 
 /* Bottom app bar - fixed to the bottom of the screen */
@@ -41,6 +61,11 @@ body {
   height: 100%;
   max-width: 400px;
   margin: 0 auto;
+}
+
+.top-app-bar-items {
+  height: 100%;
+  max-width: 100%;
 }
 
 /* Stack the icon above the label */
