@@ -49,7 +49,6 @@ export default function Home() {
               {/* number nodes being monitored */}
               <Typography.Text type="secondary"> {TOTAL_NODES} Leaf Nodes monitored</Typography.Text>
           </Flex>
-
       </Flex>
 
         {/* alerts banner */}
