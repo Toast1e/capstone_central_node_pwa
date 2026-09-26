@@ -2,12 +2,11 @@
 
 // React and NextJS
 import { useState } from 'react';
-import dynamic from "next/dynamic";
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Tag, Flex, Alert, Button, Card, Statistic, Collapse, Layout } from "antd";
-import { RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
-import { Color } from 'antd/es/color-picker';
+import { Typography, Flex, Button, Collapse } from "antd";
+
+import CustomComponent from "@/components/CustomComponent/CustomComponent";
 
 const { Text, Title } = Typography;
 
@@ -83,6 +82,9 @@ export default function Alerts() {
 
   return (
     <Flex vertical gap="large">
+
+      <CustomComponent />
+
       <Flex vertical gap="middle">
         {/* Page title */}
         <Flex vertical>
