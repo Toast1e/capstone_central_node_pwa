@@ -1,9 +1,10 @@
 "use client";
 
-import { Layout, Checkbox, Card, Form, Input, Button } from "antd";
+import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert } from "antd";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
+import { WifiOutlined, DisconnectOutlined } from '@ant-design/icons';
 
 export default function Login() {
   const { login, loading } = useAuth();
@@ -15,46 +16,81 @@ export default function Login() {
     router.push("/home");
   };
 
+  const connectionStatus = {
+    connected: {
+      icon: <WifiOutlined />,
+      title: "Connected to local vineyard hotspot",
+      type: "success",
+    },
+    disconnected: {
+      icon: <DisconnectOutlined />,
+      title: "Not connected to local vineyard hotspot",
+      type: "error",
+    },
+  }
+
   return (
 
     <Layout className="login-page">
-      <Card
-        title={
-          <div className="logo-holder">
-            <div style={{ fontSize: 32, fontWeight: 600, marginBottom: "8px" }}>
-              VitiSense
-            </div>
-            <div>Login</div>
-          </div>
-        }
-        style={{ width: 300 }}
-      >
-        <Form name="login" onFinish={onFinish} autoComplete="off">
+      <Flex vertical align="center" justify="center" gap="large" style={{ minHeight: "100vh" }}>
+        <Card>
+          {/* Login Form */}
+          <Flex vertical gap="small">
+            <Form name="login" onFinish={onFinish} autoComplete="off">
 
-          <Card style={{ justifyContent: "center", alignItems: "center", marginBottom: "16px", backgroundColor: "lightgreen" }}>
-            {/* Add wifi logo later on */}
-            <p>Connected to local vineyard hotspot</p>
-          </Card>
+              {/* Vitisense Logo */}
+              <Form.Item>
+              <Flex vertical align="center" justify="center">
+                <Typography.Title level={2}>VitiSense</Typography.Title>
+                <Typography.Text type="secondary">Mildew early warning system for your vineyards</Typography.Text>
+              </Flex>
+              </Form.Item>
 
-          <h1>Central Node 1</h1>
+              {/* Connection Status Alert */}
+              <Form.Item>
+                <Flex vertical align="center" justify="center" gap="small">
+                  <Alert icon={connectionStatus.connected.icon} showIcon title={connectionStatus.connected.title} type={connectionStatus.connected.type} />
+                </Flex>
+              </Form.Item>
 
-          <Form.Item name="password">
-            <Input.Password placeholder="Password" disabled={loading} />
-          </Form.Item>
-          <Form.Item name="remember" valuePropName="checked" label={null}>
-            <Checkbox>Keep me signed in this phone</Checkbox>
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
-              Login
-            </Button>
-            <br />
-            No Connection?
-            <br />
-            <a href="">Open Last saved readings</a>
-          </Form.Item>
-        </Form>
-      </Card>
+              {/* Which connection node */}
+              <Typography.Title level={4}>Central Node 1</Typography.Title>
+
+              {/* Password */}
+              <Form.Item name="password">
+                <Input.Password placeholder="Password" disabled={loading} />
+              </Form.Item>
+
+              {/* Remember Me check */}
+              <Form.Item name="remember" valuePropName="checked" label={null}>
+                <Checkbox>Keep me signed in this phone</Checkbox>
+              </Form.Item>
+
+              {/* Buttons */}
+              <Flex vertical gap="small">
+                <Form.Item>
+                  <Button size="large" type="primary" htmlType="submit" block loading={loading}>
+                    Login
+                  </Button>
+                </Form.Item>
+              </Flex>
+
+
+              {/* Section for no connection */}
+              <Form.Item>
+                <Flex vertical align="center" justify="center">
+                  <Typography.Text type="secondary">No Connection?</Typography.Text>
+                  <Button size="large" type="link">
+                    Open last saved readings
+                  </Button>
+                </Flex>
+              </Form.Item>
+
+            </Form>
+          </Flex>
+
+        </Card>
+      </Flex>
     </Layout>
   );
 }
