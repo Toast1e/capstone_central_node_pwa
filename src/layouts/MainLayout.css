@@ -77,3 +77,11 @@ body {
   padding: 6px 12px;
   font-size: 12px;
 }
+
+/* active tab: soft puple box behind the icon */
+.app-bar-button[aria-current="page"] .ant-btn-icon {
+  background: var(--ant-color-primary-bg, #EFEAF5);
+  border-radius: 12px;
+  padding: 4px 14px;
+  transition: background-color 0.2s;
+}
