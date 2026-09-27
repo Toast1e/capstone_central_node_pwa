@@ -5,8 +5,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #F5F2EE;   /* same as colorBgLayout in themeConfig.js */
+  --foreground: #2B2530;   /* same as colorTextBase */
 }
 
 @theme inline {
@@ -17,4 +17,9 @@
 body {
   background: var(--background);
   color: var(--foreground);
+}
+
+/* page title uses serif but everything else the Jakarta font */
+h1, h2, h3, h4, h5{
+  font-family: var(--font-fraunces), serif;
 }
