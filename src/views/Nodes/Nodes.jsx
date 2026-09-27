@@ -1,7 +1,7 @@
 "use client";
 
 // UI Libraries--Ant design libraries
-import {Flex, Tag, Typography, Card} from "antd";
+import {Flex, Tag, Typography, Card, theme} from "antd";
 import {RiCpuLine} from "@remixicon/react";
 
 // ------ Placeholder data ------
@@ -27,14 +27,17 @@ const leafNodes = [
 // ------ Connection status display ------
 // tag label and colour for each connection level
 const connectionStatus = {
-    GOOD: { label: "OK", color: "success" },
-    LOW: { label: "WEAK SIGNAL", color: "warning" },
-    NONE: { label: "NO SIGNAL", color: "error" },
+    GOOD: { label: "OK", colour: "success", edge: "colorSuccess" },
+    LOW: { label: "WEAK SIGNAL", colour: "warning", edge: "colorWarning" },
+    NONE: { label: "NO SIGNAL", colour: "error", edge: "colorError" },
 };
 
 export default function Nodes() {
     // number of leaf nodes with active connection, show in header tag
     const nodesActivelyConnected = leafNodes.filter((node) => node.connection !== "NONE").length;
+
+    // theme colours from themeConfig.js, used for the card edges
+    const { token } = theme.useToken();
   return (
       <Flex vertical gap="large">
           <Flex vertical gap="middle">
@@ -85,7 +88,11 @@ export default function Nodes() {
                       const status = connectionStatus[node.connection];
 
                       return (
-                          <Card key={node.id} size="small">
+                          <Card
+                              key={node.id}
+                              size="small"
+                              style={{borderLeft: `4px solid ${token[status.edge]}`}}
+                          >
                               <Flex justify="space-between" align="center" gap="small">
                                   <Flex vertical>
                                       <Typography.Text strong>{node.id}</Typography.Text>
@@ -96,7 +103,7 @@ export default function Nodes() {
                                       </Typography.Text>
                                   </Flex>
 
-                                  <Tag color={status.color}>{status.label}</Tag>
+                                  <Tag color={status.colour}>{status.label}</Tag>
                               </Flex>
                           </Card>
                       )
