@@ -1,0 +1,14 @@
+.threatBox{
+    border-radius: 4pt;
+    border-color: black;
+    border-width: 1pt;
+    padding: 4pt;
+    font-size: small;
+    cursor: "pointer"
+}
+
+.cardBorder{
+    border-radius: 4pt;
+    border-color: black;
+    border-width: 2pt;
+}
