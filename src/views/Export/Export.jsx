@@ -74,7 +74,7 @@ export default function Export() {
           <Title level={4}>Readings to Include:</Title>
           <Flex gap="small" vertical>
             {readingsToInclude.map((reading) => (
-              <Checkbox onChange={onChange}>{reading}</Checkbox>
+              <Checkbox key={reading} onChange={onChange}>{reading}</Checkbox>
             ))}
           </Flex>
 
