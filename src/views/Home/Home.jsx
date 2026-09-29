@@ -5,7 +5,7 @@ import { useState } from 'react';
 import dynamic from "next/dynamic";
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Tag, Flex, Alert, Button, Card, Statistic } from "antd";
+import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
 
 //draws a line chart
@@ -37,6 +37,9 @@ const humidityHistory = [
 ];
 
 export default function Home() {
+    // theme colours from themeConfig passed to the chart
+    const {token} = theme.useToken();
+
     //which leaf node currently shown from 1 to TOTAL_NODES
     const [node, setNode] = useState(1);
 
@@ -115,7 +118,14 @@ export default function Home() {
 
                 {/* humidity line graph */}
                 <Card title="Humidity (last 5h)">
-                    <Line data={humidityHistory} xField="time" yField="value" height={200} />
+                    <Line
+                        data={humidityHistory}
+                        xField="time"
+                        yField="value"
+                        height={200}
+                        style={{ stroke: token.colorPrimary, lineWidth: 3 }}
+                        point={{shapeField: "point", sizeField: 4, style: {fill: token.colorPrimary} }}
+                    />
                 </Card>
 
         </Flex>
