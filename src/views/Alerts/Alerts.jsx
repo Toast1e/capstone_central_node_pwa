@@ -4,12 +4,12 @@
 import { useState } from 'react';
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Flex, Button, Collapse } from "antd";
+import { Typography, Flex, Tabs } from "antd";
 
-import CustomComponent from "@/components/CustomComponent/CustomComponent";
-import AlertComponent from "@/components/CustomAlertComponent/CustomAlertComponent";
 import CustomAlertComponent from '../../components/CustomAlertComponent/CustomAlertComponent';
 
+// ------ Placeholder data ------
+// TODO replace with data from the backend
 const { Text, Title } = Typography;
 
 const alertDetails = [
@@ -24,15 +24,20 @@ const alertDetails = [
   }
 ];
 
-{/* Sorts from highest to lowest alert severity */}
+//Sorts from highest to lowest alert severity
 const sortedDetails = [...alertDetails].sort((a, b) => b.alertSeverity - a.alertSeverity);
 
-export default function Alerts() {
-  const [currentAlertType, setAlertType] = useState(1);
+// tabs across the top of the page
+// keys are "1", "2", "3" to match the currentAlertType numbers CustomAlertComponent expects
+const alertTabs = [
+  { key: "1", label: "Active" },
+  { key: "2", label: "Acknowledged" },
+  { key: "3", label: "History" },
+];
 
-  function changeAlertType(newType) {
-    setAlertType(currentAlertType => newType)
-  }
+export default function Alerts() {
+  // which tab is showing: 1 = active, 2 = acknowledged, 3 = history
+  const [currentAlertType, setAlertType] = useState(1);
 
   return (
     <Flex vertical gap="large">
@@ -43,41 +48,23 @@ export default function Alerts() {
         </Flex>
       </Flex>
 
-      <Flex>
-        <Button
-          key="active"
-          variant="text"
-          color={currentAlertType === 1 ? "primary" : "default"}
-          onClick={() => changeAlertType(1)}
-        >
-          Active
-        </Button>
+      {/* alert status tabs */}
+      <Tabs
+          activeKey={String(currentAlertType)}
+          onChange={(key)=>setAlertType(Number(key))}
+          items={alertTabs}
+      />
 
-        <Button
-          key="acknowledged"
-          variant="text"
-          color={currentAlertType === 2 ? "primary" : "default"}
-          onClick={() => changeAlertType(2)}
-        >
-          Acknowledged
-        </Button>
+      {/* all alerts, each card decides where it belongs */}
+      {sortedDetails.map((details) => (
+          <CustomAlertComponent
+          key={details.alertID}
+          currentAlertType={currentAlertType}
+          {...details}
+          />
 
-        <Button
-          key="history"
-          variant="text"
-          color={currentAlertType === 3 ? "primary" : "default"}
-          onClick={() => changeAlertType(3)}
-        >
-          History
-        </Button>
-      </Flex>
+      ))}
 
-      {/* Displays all alerts */}
-      {
-        sortedDetails.map((details) => (
-          <CustomAlertComponent key={details.alertID} currentAlertType={currentAlertType} alertID={details.alertID} nodeName={details.nodeName} mildewType={details.mildewType} receivedAt={details.receivedAt} isAcknowledged={details.isAcknowledged} alertSeverity={details.alertSeverity} message={details.message} />
-        ))
-      }
     </Flex>
   );
 }
