@@ -12,6 +12,11 @@ const lanAddresses = Object.values(networkInterfaces())
   .map((net) => net!.address);
 
 const nextConfig: NextConfig = {
+  // `next build` writes plain HTML/CSS/JS to `out/`. The backend repo's NGINX
+  // container builds and serves it on the Pi, so no Node.js server runs in
+  // production. Server-only features (route handlers, server actions,
+  // cookies()...) can't be used — talk to the Pi through its /api/ endpoints.
+  output: "export",
   allowedDevOrigins: lanAddresses,
 };
 
