@@ -7,11 +7,19 @@ import "./globals.css";
 // loads the font  --font-jakarta for the theme
 const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-jakarta" });
 //serif font for headings
-const fraunces = Fraunces({subsets: ["latin"], variable: "--font-fraunce" });
+const fraunces = Fraunces({subsets: ["latin"], variable: "--font-fraunces" });
 
 export const metadata = {
   title: "Central Node",
   description: "Central Node progressive web app",
+  applicationName: "VitiSense",
+  // name under the icon when added to an iPhone home screen
+  appleWebApp: { title: "VitiSense" },
+};
+
+// colours the phone's status bar and browser toolbar
+export const viewport = {
+  themeColor: "#6B4C9A",
 };
 
 export default function RootLayout({ children }) {

@@ -31,9 +31,10 @@ Other scripts:
 | Command         | What it does                     |
 | --------------- | -------------------------------- |
 | `npm run dev`   | Start the development server     |
-| `npm run build` | Create a production build        |
-| `npm run start` | Serve the production build       |
+| `npm run build` | Create a production build in `out/` |
+| `npm run start` | Serve the production build from `out/` |
 | `npm run lint`  | Run ESLint                       |
+| `npm run icons` | Regenerate the app icons (see [Deployment](#deployment)) |
 
 ## 3. Git workflow
 
@@ -96,13 +97,15 @@ src/
   app/            Routes only (Next.js App Router) - thin files that wire things up
     layout.jsx      Root layout: <html>, Ant Design setup, providers
     providers.jsx   Ant Design theme + AuthProvider
+    manifest.js     Web app manifest (home-screen install)
     login/          /login - stands alone, no app bar
     (main)/         Pages that use MainLayout   -> /home, /profile
   layouts/        MainLayout (page content + bottom app bar)
   views/          The actual page components (Login, Home, Profile)
   components/     Shared components (RequireAuth)
   contexts/       React contexts (AuthContext)
-public/           Static assets
+public/           Static assets (icons/ is generated)
+scripts/          generate-icons.mjs - draws the app icons
 next.config.ts
 package.json
 ```
@@ -126,3 +129,12 @@ The app has login only - there is no registration. Authentication is currently *
 ### Styling
 
 UI components come from [Ant Design](https://ant.design); the brand colour is set once in `src/app/providers.jsx`. Ant Design's styles are placed in a CSS layer (see `src/app/globals.css`), so rules in our own `.css` files always override its defaults without needing `!important`.
+
+## Deployment
+
+The app runs on the central node's Raspberry Pi. Phones join the Pi's Wi-Fi and open it in the browser, or install it to the home screen.
+
+- **Static export.** `next.config.ts` sets `output: "export"`, so `npm run build` produces plain HTML/CSS/JS in `out/` and no Node.js server runs on the Pi. That rules out anything that needs a server: route handlers, server actions, `cookies()`/`headers()`, and `redirects`/`rewrites` in `next.config.ts`. Fetch data from the Pi's API with relative URLs, e.g. `fetch("/api/latest")`. Cookies the API sets are sent along automatically.
+- **Built and served by the backend repo.** The `web` container in [capstone_central_node_backend](https://github.com/Toast1e/capstone_central_node_backend) builds this repo and serves `out/` with NGINX, next to the API. It expects the two repos in the same folder. Its README has the deploy steps.
+- **Installable app.** `src/app/manifest.js` describes the app to phones (name, colours, icons). Installing only works when the site is served over HTTPS.
+- **Icons.** `scripts/generate-icons.mjs` draws the icon and writes `public/icons/*`, `src/app/apple-icon.png` and `src/app/favicon.ico`. To change it, edit the SVG in that script, run `npm run icons`, and commit the new images.

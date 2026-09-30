@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "npx serve@latest out",
+    "lint": "eslint",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@ant-design/charts": "^2.6.7",
