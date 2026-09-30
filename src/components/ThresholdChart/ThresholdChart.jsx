@@ -13,7 +13,7 @@ const Line = dynamic(
 );
 
 // x axis labels: the hour for 24h, the day for 7 days
-function formatTick(time, timeRange) {
+export function formatTick(time, timeRange) {
     if (timeRange === "7d") {
         return time.toLocaleDateString("en-ZA", { weekday: "short", day: "numeric" });
     }
@@ -21,7 +21,7 @@ function formatTick(time, timeRange) {
 }
 
 // tooltip heading: always day and time
-function formatTooltipTime(time) {
+export function formatTooltipTime(time) {
     return time.toLocaleString("en-ZA", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
