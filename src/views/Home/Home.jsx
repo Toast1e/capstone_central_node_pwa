@@ -2,17 +2,16 @@
 
 // React and NextJS
 import { useState } from 'react';
-import dynamic from "next/dynamic";
+
+// own components and data
+import ThresholdChart from "../../components/ThresholdChart/ThresholdChart";
+import {MILDEW_THRESHOLDS} from "./mildewThresholds";
+import {weekOfReadings} from "./mockReadings";
+import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme } from "antd";
+import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme, Segmented } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
-
-//draws a line chart
-const Line = dynamic(
-    () => import("@ant-design/charts").then((mod) => mod.Line),
-    {ssr: false}
-);
 
 // ------ Placeholder data ------
 // TODO make page elements dynamic based on backend later
@@ -27,14 +26,19 @@ const metrics = [
     { title: "WIND", value: 9.4, unit: "m/s", note: "aaahhhhh" },
 ];
 
-// mock readings over time data in this case humidity, used by line graph
-const humidityHistory = [
-    { time: "12:00", value: 78 },
-    { time: "13:00", value: 85 },
-    { time: "14:00", value: 91 },
-    { time: "15:00", value: 94 },
-    { time: "16:00", value: 93 },
+// ------ Chart options ------
+const diseaseOptions = [
+    { label: "Powdery", value: "powdery" },
+    { label: "Downy", value: "downy" },
 ];
+
+const timeRangeOptions = [
+    { label: "24h", value: "24h" },
+    { label: "7 days", value: "7d" },
+];
+
+// orange for temperature
+const TEMPERATURE_COLOUR = "#eb6834";
 
 export default function Home() {
     // theme colours from themeConfig passed to the chart
@@ -43,7 +47,25 @@ export default function Home() {
     //which leaf node currently shown from 1 to TOTAL_NODES
     const [node, setNode] = useState(1);
 
-  return (
+    // which disease's risk zones the charts show, and time period shown
+    const [disease, setDisease] = useState("powdery");
+    const [timeRange, setTimeRange] = useState("24h");
+
+    // thresholds for diseases
+    const thresholds = MILDEW_THRESHOLDS[disease];
+
+    // last 24 hours or the whole week 7 days
+    const readings = timeRange === "24h" ? weekOfReadings.slice(-25) : weekOfReadings;
+
+    // the chart wants one row per line per reading, so each reading becomes 2 rows here
+    const temperatureData = readings.flatMap((reading) => [
+        { time: reading.time, value: reading.temperature, series: "Temperature" },
+        { time: reading.time, value: reading.dewPoint, series: "Dew point" },
+    ]);
+    const humidityData = readings.map((reading) => ({ time: reading.time, value: reading.humidity, series: "Humidity" }));
+    const windData = readings.map((reading) => ({ time: reading.time, value: reading.wind, series: "Wind" }));
+
+    return (
     <Flex vertical gap="large">
       <Flex vertical gap="middle">
           {/* Page title */}
@@ -116,17 +138,62 @@ export default function Home() {
                 ))}
             </div>
 
-                {/* humidity line graph */}
-                <Card title="Humidity (last 5h)">
-                    <Line
-                        data={humidityHistory}
-                        xField="time"
-                        yField="value"
-                        height={200}
-                        style={{ stroke: token.colorPrimary, lineWidth: 3 }}
-                        point={{shapeField: "point", sizeField: 4, style: {fill: token.colorPrimary} }}
-                    />
-                </Card>
+            {/* chart controls, one row that applies to all charts */}
+            <Flex justify="space-between" align="center" wrap gap="small">
+                <Segmented options={diseaseOptions} value={disease} onChange={setDisease} />
+                <Segmented options={timeRangeOptions} value={timeRange} onChange={setTimeRange} />
+            </Flex>
+
+            {/* timeline of when each disease's conditions were met */}
+            <ConditionTimeline
+                readings={readings}
+                thresholds={{[disease]: MILDEW_THRESHOLDS[disease]}}
+                timeRange={timeRange} />
+
+            {/* temperature and dew point chart */}
+            <ThresholdChart
+                title="Temperature and dew point"
+                data={temperatureData}
+                colors={{ Temperature: TEMPERATURE_COLOUR, "Dew point": token.colorPrimary }}
+                unit="°C"
+                yDomain={[0, 40]}
+                riskZone={{
+                    from: thresholds.temperature.min,
+                    to: thresholds.temperature.max,
+                    label: `${thresholds.label} risk: ${thresholds.temperature.min}–${thresholds.temperature.max} °C`,
+                }}
+                timeRange={timeRange}
+            />
+
+            {/* humidity chart */}
+            <ThresholdChart
+                title="Relative humidity"
+                data={humidityData}
+                colors={{ Humidity: token.colorPrimary }}
+                unit="%"
+                yDomain={[0, 100]}
+                riskZone={{
+                    from: thresholds.humidity.min,
+                    to: 100,
+                    label: `${thresholds.label} risk: above ${thresholds.humidity.min}%`,
+                }}
+                timeRange={timeRange}
+            />
+
+            {/* wind chart */}
+            <ThresholdChart
+                title="Wind speed"
+                data={windData}
+                colors={{ Wind: token.colorPrimary }}
+                unit=" m/s"
+                yDomain={[0, 12]}
+                riskZone={{
+                    from: thresholds.wind.min,
+                    to: 12,
+                    label: `${thresholds.label} risk: above ${thresholds.wind.min} m/s`,
+                }}
+                timeRange={timeRange}
+            />
 
         </Flex>
     </Flex>
