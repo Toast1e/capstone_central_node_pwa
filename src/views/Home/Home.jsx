@@ -3,10 +3,11 @@
 // React and NextJS
 import { useState } from 'react';
 
-// own components ans data
+// own components and data
 import ThresholdChart from "../../components/ThresholdChart/ThresholdChart";
 import {MILDEW_THRESHOLDS} from "./mildewThresholds";
 import {weekOfReadings} from "./mockReadings";
+import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
 
 // UI Libraries mostly Ant design libraries
 import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme, Segmented } from "antd";
@@ -142,6 +143,9 @@ export default function Home() {
                 <Segmented options={diseaseOptions} value={disease} onChange={setDisease} />
                 <Segmented options={timeRangeOptions} value={timeRange} onChange={setTimeRange} />
             </Flex>
+
+            {/* timeline of when each disease's conditions were met */}
+            <ConditionTimeline readings={readings} thresholds={MILDEW_THRESHOLDS} timeRange={timeRange} />
 
             {/* temperature and dew point chart */}
             <ThresholdChart
