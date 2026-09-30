@@ -26,9 +26,18 @@ export default function Export() {
   const [selectedNodes, setSelectedNodes] = useState(["All Leaf Nodes"]);
 
   const ToggleNode = (node) => {
-    setSelectedNodes((prev) =>
-      prev.includes(node) ? prev.filter((n) => n !== node) : [...prev, node]
+    setSelectedNodes((prev) => {
+      if (node === "All Leaf Nodes") {
+        return ["All Leaf Nodes"];
+      }
+      const withoutAll = prev.filter((n) => n !== "All Leaf Nodes");
+
+      return withoutAll.includes(node)
+        ? withoutAll.filter((n) => n !== node)
+        : [...withoutAll, node];
+    }
     );
+
   };
 
   const readingsToInclude = ["Temperature & Humidity", "Leaf Wetness", "Wind Speed", "Node ID & Battery Log"];
@@ -60,8 +69,7 @@ export default function Export() {
                 size="small"
                 shape="round"
                 type={selectedNodes.includes(node) ? "primary" : "default"}
-                onClick={() => ToggleNode(node)}
-              >
+                onClick={() => ToggleNode(node)}>
                 {node}
               </Button>
             ))}
