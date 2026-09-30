@@ -26,9 +26,6 @@ const alertDetails = [
   },
 ];
 
-//Sorts from highest to lowest alert severity
-const sortedDetails = [...alertDetails].sort((a, b) => b.alertSeverity - a.alertSeverity);
-
 // tabs across the top of the page
 const alertTabs = [
   { key: "active", label: "Active" },
@@ -48,15 +45,31 @@ export default function Alerts() {
   // which tab is showing
   const [currentTab, setCurrentTab] = useState("active");
 
+  // the alert list, in state so the page updates when an alert is acknowledged
+  const [alerts, setAlerts] = useState(alertDetails);
+
   // theme colours from themeConfig.js, used for the severity edges
   const { token } = theme.useToken();
 
+  // sorts from highest to lowest alert severity
+  const sortedAlerts = [...alerts].sort((a, b) => b.alertSeverity - a.alertSeverity);
+
   // only the alerts that belong on the current tab
-  const visibleAlerts = sortedDetails.filter((alert) => {
+  const visibleAlerts = sortedAlerts.filter((alert) => {
     if (currentTab === "active") return !alert.isAcknowledged;
     if (currentTab === "acknowledged") return alert.isAcknowledged;
     return true; // history shows every alert
   });
+
+  // marks alert as acknowledged, then moves it from Active to Acknowledged
+  function acknowledgeAlert(alertID) {
+    setAlerts((current) =>
+        current.map((alert) =>
+            alert.alertID === alertID ? { ...alert, isAcknowledged: true } : alert
+        )
+    );
+    // TODO send the acknowledgement to the backend so it's saved
+  }
 
   return (
     <Flex vertical gap="large">
@@ -117,9 +130,10 @@ export default function Alerts() {
                           />
 
                           {/* only unacknowledged alerts can be acknowledged */}
-                          {/* TODO next step: make this button move the alert to Acknowledged */}
                           {!alert.isAcknowledged && (
-                              <Button type="primary">Acknowledge</Button>
+                              <Button type="primary" onClick={() => acknowledgeAlert(alert.alertID)}>
+                                Acknowledge
+                              </Button>
                           )}
 
                         </Flex>
