@@ -138,14 +138,17 @@ export default function Home() {
                 ))}
             </div>
 
-            {/* chart controls, one row that applies to all three charts */}
+            {/* chart controls, one row that applies to all charts */}
             <Flex justify="space-between" align="center" wrap gap="small">
                 <Segmented options={diseaseOptions} value={disease} onChange={setDisease} />
                 <Segmented options={timeRangeOptions} value={timeRange} onChange={setTimeRange} />
             </Flex>
 
             {/* timeline of when each disease's conditions were met */}
-            <ConditionTimeline readings={readings} thresholds={MILDEW_THRESHOLDS} timeRange={timeRange} />
+            <ConditionTimeline
+                readings={readings}
+                thresholds={{[disease]: MILDEW_THRESHOLDS[disease]}}
+                timeRange={timeRange} />
 
             {/* temperature and dew point chart */}
             <ThresholdChart
