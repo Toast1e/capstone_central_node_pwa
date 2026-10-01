@@ -73,19 +73,18 @@ export default function Alerts() {
 
   return (
     <Flex vertical gap="large">
-      <Flex vertical gap="middle">
+      <Flex vertical gap="small">
         {/* Page title */}
-        <Flex vertical>
-          <Typography.Title level={2}>Mildew Alerts</Typography.Title>
-        </Flex>
-      </Flex>
-
+        <Typography.Title level={2} style={{margin:0}}>Mildew Alerts</Typography.Title>
       {/* alert status tabs */}
       <Tabs
           activeKey={currentTab}
           onChange={setCurrentTab}
           items={alertTabs}
+          // remove the tab bar's built-in bottom margin; the page gap handles spacing
+          tabBarStyle={{ marginBottom: 0 }}
       />
+      </Flex>
 
       {/* alerts list  */}
       <Flex vertical gap="small">

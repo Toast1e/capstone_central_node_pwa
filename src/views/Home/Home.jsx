@@ -67,13 +67,11 @@ export default function Home() {
 
     return (
     <Flex vertical gap="large">
-      <Flex vertical gap="middle">
-          {/* Page title */}
-          <Flex vertical>
-              <Typography.Title level={2}>Central Node 1 Overview</Typography.Title>
-              {/* number nodes being monitored */}
-              <Typography.Text type="secondary"> {TOTAL_NODES} Leaf Nodes monitored</Typography.Text>
-          </Flex>
+      {/* Page title */}
+      <Flex vertical gap={4}>
+          <Typography.Title level={2} style={{margin: 0}}>Central Node 1 Overview</Typography.Title>
+          {/* number nodes being monitored */}
+          <Typography.Text type="secondary"> {TOTAL_NODES} Leaf Nodes monitored</Typography.Text>
       </Flex>
 
         {/* alerts banner */}
