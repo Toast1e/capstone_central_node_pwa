@@ -1,62 +1,83 @@
 "use client";
 
+// React
 import { useState } from 'react';
-import dynamic from "next/dynamic";
 
-import { DatePicker, Flex, Typography, Button, Checkbox, Card } from 'antd';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
+// UI Libraries mostly Ant design libraries
+import { DatePicker, Flex, Typography, Button, Checkbox, Card, Segmented } from 'antd';
+import {RiDownload2Line} from "@remixicon/react";
 
-const { Title, Text } = Typography;
-
-const onChange = (date, dateString) => {
-  console.log(date, dateString);
-};
-
-// Date Formats
-const { RangePicker } = DatePicker;
+//how dates are shown
 const dateFormat = 'YYYY/MM/DD';
 
-const startDate = dayjs('2026/01/01', dateFormat);
-const endDate = dayjs('2026/12/31', dateFormat);
+const leafNodeOptions = [
+    "All Leaf Nodes",
+    "Leaf Node 1",
+    "Leaf Node 2",
+    "Leaf Node 3",
+    "Leaf Node 4",
+    "Leaf Node 5",
+    "Leaf Node 6"
+];
 
-const LeafNodeOptions = ["All Leaf Nodes", "Leaf Node 1", "Leaf Node 2", "Leaf Node 3", "Leaf Node 4", "Leaf Node 5", "Leaf Node 6"];
+const readingOptions = [
+    "Temperature & Humidity",
+    "Leaf Wetness",
+    "Wind Speed",
+    "Node ID & Battery Logs"
+];
+
+const fileFormatOptions = [
+    {label: "CSV (Excel)", value: "csv"},
+    {label: "JSON (Raw)", value: "json"}
+]
 
 export default function Export() {
-  const [selectedNodes, setSelectedNodes] = useState(["All Leaf Nodes"]);
-
     // export date range as [start, end], both empty to begin with
     const [dateRange, setDateRange] = useState([null, null]);
 
-    const ToggleNode = (node) => {
-    setSelectedNodes((prev) => {
-      if (node === "All Leaf Nodes") {
-        return ["All Leaf Nodes"];
-      }
-      const withoutAll = prev.filter((n) => n !== "All Leaf Nodes");
+    // which nodes to export
+    const [selectedNodes, setSelectedNodes] = useState(["All Leaf Nodes"]);
 
-      return withoutAll.includes(node)
-        ? withoutAll.filter((n) => n !== node)
-        : [...withoutAll, node];
+    //which readings to include... all to begin with
+    const [readings, setReadings] = useState(readingOptions);
+
+    //csv or json
+    const [fileFormat, setFileFormat] = useState("csv");
+
+    //All leaf nodes on its own or any mix of single nodes can be selected
+    const toggleNode = (node) => {
+        setSelectedNodes((previous) => {
+            if (node === "All Leaf Nodes")
+                return ["All Leaf Nodes"];
+
+            const withoutAll = previous.filter((n) => n !== "All Leaf Nodes");
+            const updated = withoutAll.includes(node)
+                ? withoutAll.filter((n) => n !== node)
+                : [...withoutAll, node];
+
+            //if all single nodes get selected change back to all nodes
+            return updated.length >0 ? updated : ["All Leaf Nodes"];
+        });
+  }
+
+    // TODO send this to the backend and download the file it returns
+    function handleDownload() {
+        console.log({ dateRange, selectedNodes, readings, fileFormat });
     }
-    );
-  };
-
-  const readingsToInclude = ["Temperature & Humidity", "Leaf Wetness", "Wind Speed", "Node ID & Battery Log"];
 
   return (
 
-      <Flex vertical>
-
+      <Flex vertical gap="large">
         {/* Page Title */}
-          <Typography.Title level={2}>Export Vineyard Data</Typography.Title>
+          <Typography.Title level={2} style={{margin:0}}>Export Vineyard Data</Typography.Title>
 
        {/* date range: two single-month pickers so each calendar fits on a phone */}
-          <Flex gap="small" vertical>
-              <Typography.Text strong>DATE RANGE</Typography.Text>
+          <Card size="small" title="Date Range">
               <Flex gap="small">
                   <DatePicker
                       placeholder="start"
+                      format={dateFormat}
                       value={dateRange[0]}
                       onChange={(date) => setDateRange([date, dateRange[1]])}
                       // no future dates, and no start date after the end date
@@ -66,6 +87,7 @@ export default function Export() {
                   />
                   <DatePicker
                       placeholder="end"
+                      format={dateFormat}
                       value={dateRange[1]}
                       onChange={(date) => setDateRange([dateRange[0], date])}
                       // no future dates, and no end date before the start date
@@ -74,48 +96,48 @@ export default function Export() {
                       inputReadOnly
                   />
               </Flex>
-          </Flex>
+          </Card>
 
         {/* Leaf Node Selection Section */}
-        <Flex gap="small" wrap="wrap" vertical>
-          <Typography.Text strong>LEAF NODE SELECTION</Typography.Text>
-          <Flex gap="small" wrap="wrap">
-            {LeafNodeOptions.map((node) => (
-              <Button
-                key={node}
-                size="small"
-                shape="round"
-                type={selectedNodes.includes(node) ? "primary" : "default"}
-                onClick={() => ToggleNode(node)}>
-                {node}
-              </Button>
-            ))}
+        <Card size="small" title="Leaf Nodes" >
+          <Flex gap="small" wrap>
+            {leafNodeOptions.map((node) => {
+                const selected = selectedNodes.includes(node);
+                return(
+                    <Button
+                        key={node}
+                        shape="round"
+                        color={selected ? "primary":"default"}
+                        variant={selected ? "filled" : "outlined"}
+                        onClick={() => toggleNode(node)}
+                    >
+                        {node}
+                    </Button>
+                );
+            })}
           </Flex>
+        </Card>
 
-        </Flex>
         {/* Readings to include section */}
-        <Flex gap="small" vertical>
-          <Typography.Text strong>READINGS TO INCLUDE</Typography.Text>
-          <Flex gap="small" vertical>
-            {readingsToInclude.map((reading) => (
-              <Checkbox key={reading} onChange={onChange}>{reading}</Checkbox>
-            ))}
-          </Flex>
-
-        </Flex>
+        <Card size="small" title="Reading to Include">
+            <Checkbox.Group value={readings} onChange={setReadings}>
+                <Flex vertical gap="small">
+                    {readingOptions.map((reading) => (
+                        <Checkbox key={reading} value={reading}>{reading}</Checkbox>
+                    ))}
+                </Flex>
+            </Checkbox.Group>
+        </Card>
 
         {/* File Format */}
-        <Flex gap="small" vertical>
-          <Typography.Text strong>FILE FORMAT</Typography.Text>
-          <Flex gap="small" wrap="wrap">
-            <Button type="primary" size="large">CSV (Excel)</Button>
-            <Button type="default" size="large">JSON (Raw)</Button>
-          </Flex>
+        <Card size="small" title="File Format">
+          <Segmented options={fileFormatOptions} value={fileFormat} onChange={setFileFormat} block/>
+        </Card>
 
-          <Button type="primary" style={{ marginTop: '16px' }} size="large">
+          <Button type="primary" size="large" block icon={<RiDownload2Line size={20} />} onClick={handleDownload}>
             Download Log Package
           </Button>
-        </Flex>
+
       </Flex>
   );
 }
