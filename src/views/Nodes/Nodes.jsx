@@ -1,8 +1,14 @@
 "use client";
 
+// React and NextJS
+import { useState } from "react";
+
 // UI Libraries--Ant design libraries
 import {Flex, Tag, Typography, Card, theme} from "antd";
-import {RiCpuLine} from "@remixicon/react";
+import { RiCpuLine, RiArrowRightSLine } from "@remixicon/react";
+
+// Our own components
+import LeafNodeModal from "./LeafNodeModal";
 
 // ------ Placeholder data ------
 // TODO replace with data from the backend
@@ -38,6 +44,16 @@ export default function Nodes() {
 
     // theme colours from themeConfig.js, used for the card edges
     const { token } = theme.useToken();
+
+    // the leaf node whose pop-up is showing, and whether it's open kept separate so the pop-up keeps its content while it animates closed
+    const [selectedNode, setSelectedNode] = useState(null);
+    const [modalOpen, setModalOpen] = useState(false);
+
+    function openNode(node) {
+        setSelectedNode(node);
+        setModalOpen(true);
+    }
+
   return (
       <Flex vertical gap="large">
           <Flex vertical gap="middle">
@@ -91,7 +107,9 @@ export default function Nodes() {
                           <Card
                               key={node.id}
                               size="small"
-                              style={{borderLeft: `4px solid ${token[status.edge]}`}}
+                              style={{borderLeft: `4px solid ${token[status.edge]}`, cursor: "pointer"}}
+                              hoverable
+                              onClick={() => {openNode(node)}}
                           >
                               <Flex justify="space-between" align="center" gap="small">
                                   <Flex vertical>
@@ -103,13 +121,29 @@ export default function Nodes() {
                                       </Typography.Text>
                                   </Flex>
 
-                                  <Tag color={status.colour}>{status.label}</Tag>
+                                  <Flex align="center" gap={4}>
+                                      <Tag color={status.colour}>{status.label}</Tag>
+                                      <RiArrowRightSLine size={18} color={ token.colorTextTertiary} />
+                                  </Flex>
+
                               </Flex>
                           </Card>
                       )
                   })}
               </div>
           </Flex>
+
+          {/* modal for the selected leaf node, a new one for each node */}
+          {selectedNode && (
+              <LeafNodeModal
+                  key={selectedNode.id}
+                  node={selectedNode}
+                  status={connectionStatus[selectedNode.connection]}
+                  open={modalOpen}
+                  onClose={() => setModalOpen(false)}
+              />
+          )}
+
       </Flex>
   );
 }
