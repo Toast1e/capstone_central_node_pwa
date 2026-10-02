@@ -1,29 +1,30 @@
 "use client";
 
-import { Layout, Flex, Button, Typography } from "antd";
+import { Layout, Flex, Button, Typography, Switch } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine, RiFontSize2 } from "@remixicon/react";
 import "./MainLayout.css";
 import { Header } from "antd/es/layout/layout";
-import path from "path";
+import { useEffect } from "react";
+import { useConnection } from "@/contexts/ConnectionContext";
 
 const { Text } = Typography;
 const { Content, Footer } = Layout;
 
 // Add an entry here (plus a page under src/app/(main)/) to extend the app bar.
 const NAV_ITEMS = [
-  { key: "home", label: "Home", path: "/home", icon: <RiHome5Line /> },
-  { key: "alerts", label: "Alerts", path: "/alerts", icon: <RiNotification2Line /> },
-  { key: "nodes", label: "Nodes", path: "/nodes", icon: <RiCpuLine /> },
-  { key: "export", label: "Export", path: "/export", icon: <RiExportLine /> },
-  { key: "profile", label: "Profile", path: "/profile", icon: <RiUserLine /> },
+  { key: "home", label: "Home", path: "/home", icon: <RiHome5Line />, worksOffline: true },
+  { key: "alerts", label: "Alerts", path: "/alerts", icon: <RiNotification2Line />, worksOffline: false },
+  { key: "nodes", label: "Nodes", path: "/nodes", icon: <RiCpuLine />, worksOffline: false },
+  { key: "export", label: "Export", path: "/export", icon: <RiExportLine />, worksOffline: false },
+  { key: "profile", label: "Profile", path: "/profile", icon: <RiUserLine />, worksOffline: false },
 ];
 
 export default function MainLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const centralNode = "Central node 1";
-  let isOnline = true;
+  const { status, setStatus, isOnline } = useConnection();
 
   return (
     <Layout className="layout">
@@ -38,6 +39,15 @@ export default function MainLayout({ children }) {
             <Text type={isOnline ? "success" : "warning"} strong className="textSize">
               {isOnline ? "Live" : "Offline"}
             </Text>
+          </Flex>
+
+          <Flex gap={"5pt"}>
+            <Switch
+              checked={isOnline}
+              onChange={(on) => { setStatus(on ? "connected" : "disconnected"); }}
+              checkedChildren="Live"
+              unCheckedChildren="Offline"
+            />
           </Flex>
 
           <Text strong className="textSize">
@@ -59,6 +69,7 @@ export default function MainLayout({ children }) {
         >
           {NAV_ITEMS.map((item) => {
             const active = pathname.startsWith(item.path);
+            const disabled = !isOnline && !item.worksOffline;
             return (
               <Button
                 key={item.key}
@@ -67,6 +78,7 @@ export default function MainLayout({ children }) {
                 color={active ? "primary" : "default"}
                 icon={item.icon}
                 aria-current={active ? "page" : undefined}
+                disabled={disabled}
                 onClick={() => router.push(item.path)}
               >
                 {item.label}
