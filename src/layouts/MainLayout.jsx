@@ -41,6 +41,7 @@ export default function MainLayout({ children }) {
             </Text>
           </Flex>
 
+          // Add a switch for simulating the connection the the central node. Currently for simulation purposes. Remove later when actual offline functionality is implemented.
           <Flex gap={"5pt"}>
             <Switch
               checked={isOnline}
