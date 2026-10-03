@@ -17,7 +17,7 @@ const NAV_ITEMS = [
   { key: "alerts", label: "Alerts", path: "/alerts", icon: <RiNotification2Line />, worksOffline: false },
   { key: "nodes", label: "Nodes", path: "/nodes", icon: <RiCpuLine />, worksOffline: false },
   { key: "export", label: "Export", path: "/export", icon: <RiExportLine />, worksOffline: false },
-  { key: "profile", label: "Profile", path: "/profile", icon: <RiUserLine />, worksOffline: false },
+  { key: "profile", label: "Profile", path: "/profile", icon: <RiUserLine />, worksOffline: true },
 ];
 
 export default function MainLayout({ children }) {
@@ -41,19 +41,10 @@ export default function MainLayout({ children }) {
             </Text>
           </Flex>
 
-          // Add a switch for simulating the connection the the central node. Currently for simulation purposes. Remove later when actual offline functionality is implemented.
-          <Flex gap={"5pt"}>
-            <Switch
-              checked={isOnline}
-              onChange={(on) => { setStatus(on ? "connected" : "disconnected"); }}
-              checkedChildren="Live"
-              unCheckedChildren="Offline"
-            />
-          </Flex>
-
           <Text strong className="textSize">
             {NAV_ITEMS.find(options => options.path == pathname).label}
           </Text>
+
         </Flex>
       </Header>
 
