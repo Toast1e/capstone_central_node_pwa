@@ -13,17 +13,17 @@ const Line = dynamic(
 );
 
 // x axis labels: the hour for 24h, the day for 7 days
-export function formatTick(time, timeRange) {
-    if (timeRange === "7d") {
-        return time.toLocaleDateString("en-ZA", { weekday: "short", day: "numeric" });
-    }
-    return time.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" });
-}
+// export function formatTick(time, timeRange) {
+//     if (timeRange === "7d") {
+//         return time.toLocaleDateString("en-ZA", { weekday: "short", day: "numeric" });
+//     }
+//     return time.toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" });
+// }
 
-// tooltip heading: always day and time
-export function formatTooltipTime(time) {
-    return time.toLocaleString("en-ZA", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
+// // tooltip heading: always day and time
+// export function formatTooltipTime(time) {
+//     return time.toLocaleString("en-ZA", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+// }
 
 /**
  * Line chart of sensor readings with a shaded mildew risk zone.
@@ -33,9 +33,9 @@ export function formatTooltipTime(time) {
  * unit       added after numbers, e.g. "°C"
  * yDomain    [lowest, highest] for the y axis
  * riskZone   { from, to, label } range to shade
- * timeRange  "24h" or "7d", changes the x axis labels
  */
-export default function ThresholdChart({ title, data, colors, unit, yDomain, riskZone, timeRange }) {
+
+export default function ThresholdChart({ title, data, colors, unit, yDomain, riskZone }) {
     // theme colours from themeConfig.js
     const { token } = theme.useToken();
 
@@ -48,7 +48,7 @@ export default function ThresholdChart({ title, data, colors, unit, yDomain, ris
                 xField="time"
                 yField="value"
                 colorField="series"
-                height={220}
+                height={320}
                 // thin 2px lines
                 style={{ lineWidth: 2 }}
                 scale={{
@@ -58,12 +58,9 @@ export default function ThresholdChart({ title, data, colors, unit, yDomain, ris
                 }}
                 axis={{
                     x: {
-                        labelFormatter: (time) => formatTick(time, timeRange),
-                        tickCount: timeRange === "7d" ? 7 : 6,
                         grid: false, // no vertical gridlines
                     },
                     y: {
-                        labelFormatter: (value) => `${value}${unit}`,
                         // faint solid gridlines, so dashes only ever mean something
                         gridLineDash: [0, 0],
                         gridStroke: token.colorBorderSecondary,
@@ -73,7 +70,7 @@ export default function ThresholdChart({ title, data, colors, unit, yDomain, ris
                 // legend only when there's more than one line; the title names a single line
                 legend={seriesNames.length > 1 ? { color: { position: "top", itemMarker: "square" } } : false}
                 tooltip={{
-                    title: (row) => formatTooltipTime(row.time),
+                    //title: (row) => formatTooltipTime(row.time),
                     items: [(row) => ({ name: row.series, value: `${row.value}${unit}` })],
                 }}
                 // shaded risk zone behind the lines
