@@ -4,12 +4,16 @@
 
 import { useEffect } from "react";
 
-export default function registerServiceWorker() {
+export default function RegisterServiceWorker() {
     useEffect(() => {
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-        } else {
-            console.log('serviceWorker not supported in this context');
+        if (
+            process.env.NODE_ENV === "production" &&
+            "serviceWorker" in navigator
+        ) {
+            navigator.serviceWorker
+                .register("/sw.js")
+                .then(() => console.log("SW registered"))
+                .catch((err) => console.error("SW registration failed", err));
         }
     }
     )
