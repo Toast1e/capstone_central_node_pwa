@@ -4,7 +4,6 @@
 import { useEffect, useState } from 'react';
 
 // own components and data
-import ThresholdChart from "../../components/ThresholdChart/ThresholdChart";
 import { MILDEW_THRESHOLDS } from "./mildewThresholds";
 import { weekOfReadings } from "./mockReadings";
 import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
@@ -12,9 +11,9 @@ import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimel
 // UI Libraries mostly Ant design libraries
 import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme, Segmented } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
-import { Line } from '@ant-design/plots';
 
 import Papa from 'papaparse';
+import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
 
 // ------ Placeholder data ------
 // TODO make page elements dynamic based on backend later
@@ -40,6 +39,11 @@ const timeRangeOptions = [
     { label: "7 days", value: "7d" },
 ];
 
+const fileOptions = [
+    { label: "file 1", value: "csv/mildew_2026-07-08.csv" },
+    { label: "file 2", value: "csv/mildew_2026-07-07 copy.csv" },
+];
+
 // orange for temperature
 const TEMPERATURE_COLOUR = "#eb6834";
 
@@ -59,61 +63,41 @@ export default function Home() {
 
     // last 24 hours or the whole week 7 days
     const readings = timeRange === "24h" ? weekOfReadings.slice(-25) : weekOfReadings;
-
-    // the chart wants one row per line per reading, so each reading becomes 2 rows here
-    const temperatureData = readings.flatMap((reading) => [
-        { time: reading.time, value: reading.temperature, series: "Temperature" },
-        { time: reading.time, value: reading.dewPoint, series: "Dew point" },
-    ]);
-    const humidityData = readings.map((reading) => ({ time: reading.time, value: reading.humidity, series: "Humidity" }));
     const windData = readings.map((reading) => ({ time: reading.time, value: reading.wind, series: "Wind" }));
 
     const [graphReadings, setGraphReadings] = useState([]);
+    const [fileName, setFileName] = useState("csv/mildew_2026-07-08.csv");
 
     useEffect(() => {
-        fetch("csv/mildew_2026-07-08.csv")
+        fetch(fileName)
             .then((response) => response.text())
             .then((csvText) => {
                 Papa.parse(csvText, {
                     header: true,
                     skipEmptyLines: true,
+                    dynamicTyping: true,
                     complete: (results) => {
                         const formattedReadings = results.data.map((row) => ({
                             RealTimeLog: row['timestamp'],
                             Temperature: row['temp_c'],
                             Humidity: row['humidity_pct']
                         }));
-                        setGraphReadings(formattedReadings);
+                        setGraphReadings(formattedReadings);                        
                     }
                 });
             })
-    }, []);
+    });
 
-    const tempConfig = {
-        data: graphReadings,
-        xField: 'RealTimeLog',
-        yField: 'Temperature',
-        point: {
-            shape: 'circle',
-            size: 5,
-        },
-        interaction: {
-            tooltip: true,
-        },
-    };
+    function calculateDewpoint(humidity, temperature) {
+        const gamma = Math.log(humidity / 100) + (17.62 * temperature) / (243.12 + temperature);
+        return Math.round((243.12 * gamma) / (17.62 - gamma));
+    }
 
-    const humidityConfig = {
-        data: graphReadings,
-        xField: 'RealTimeLog',
-        yField: 'Humidity',
-        point: {
-            shape: 'circle',
-            size: 5,
-        },
-        interaction: {
-            tooltip: true,
-        },
-    };
+    const graphHumidity = graphReadings.map((reading) => ({ time: reading.RealTimeLog, value: reading.Humidity, series: "Humidity" }));
+    const graphTemp = graphReadings.flatMap((reading) => [
+        { time: reading.RealTimeLog, value: reading.Temperature, series: "Temperature" },
+        { time: reading.RealTimeLog, value: calculateDewpoint(reading.Humidity, reading.Temperature), series: "Dew point" },
+    ]);
 
     return (
         <Flex vertical gap="large">
@@ -191,19 +175,20 @@ export default function Home() {
                 {/* chart controls, one row that applies to all charts */}
                 <Flex justify="space-between" align="center" wrap gap="small">
                     <Segmented options={diseaseOptions} value={disease} onChange={setDisease} />
+                    <Segmented options={fileOptions} value={fileName} onChange={setFileName} />
                     <Segmented options={timeRangeOptions} value={timeRange} onChange={setTimeRange} />
                 </Flex>
 
                 {/* timeline of when each disease's conditions were met */}
                 <ConditionTimeline
-                    readings={readings}
+                    readings={graphReadings}
                     thresholds={{ [disease]: MILDEW_THRESHOLDS[disease] }}
                     timeRange={timeRange} />
 
                 {/* temperature and dew point chart */}
-                <ThresholdChart
+                <ThresholdGraph
                     title="Temperature and dew point"
-                    data={temperatureData}
+                    data={graphTemp}
                     colors={{ Temperature: TEMPERATURE_COLOUR, "Dew point": token.colorPrimary }}
                     unit="°C"
                     yDomain={[0, 40]}
@@ -212,13 +197,12 @@ export default function Home() {
                         to: thresholds.temperature.max,
                         label: `${thresholds.label} risk: ${thresholds.temperature.min}–${thresholds.temperature.max} °C`,
                     }}
-                    timeRange={timeRange}
                 />
 
                 {/* humidity chart */}
-                <ThresholdChart
+                <ThresholdGraph
                     title="Relative humidity"
-                    data={humidityData}
+                    data={graphHumidity}
                     colors={{ Humidity: token.colorPrimary }}
                     unit="%"
                     yDomain={[0, 100]}
@@ -227,11 +211,10 @@ export default function Home() {
                         to: 100,
                         label: `${thresholds.label} risk: above ${thresholds.humidity.min}%`,
                     }}
-                    timeRange={timeRange}
                 />
 
                 {/* wind chart */}
-                <ThresholdChart
+                <ThresholdGraph
                     title="Wind speed"
                     data={windData}
                     colors={{ Wind: token.colorPrimary }}
@@ -244,39 +227,6 @@ export default function Home() {
                     }}
                     timeRange={timeRange}
                 />
-
-                <div style={{ width: '100%', height: 400 }}>
-                    <h2>Temp</h2>
-                    <Line {...tempConfig} />
-                </div>
-
-                <div style={{ width: '100%', height: 400 }}>
-                    <h2>Humidity</h2>
-                    <Line {...humidityConfig} />
-                </div>
-
-                <div style={{ padding: "20px" }}>
-                    <h1>Local CSV Data</h1>
-                    <table border="1" cellPadding="5">
-                        <thead>
-                            <tr>
-                                {graphReadings.length > 0 && Object.keys(graphReadings[0]).map((key) => (
-                                    <th key={key}>{key}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {graphReadings.map((row, index) => (
-                                <tr key={index}>
-                                    {Object.values(row).map((val, i) => (
-                                        <td key={i}>{val}</td>
-                                    ))}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
             </Flex>
         </Flex>
     );

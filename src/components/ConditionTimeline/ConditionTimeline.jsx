@@ -4,7 +4,7 @@
 import { Card, Flex, Tooltip, Typography, theme } from "antd";
 
 // Our own components
-import { formatTick, formatTooltipTime } from "@/components/ThresholdChart/ThresholdChart";
+//import { formatTick, formatTooltipTime } from "@/components/ThresholdGraph/ThresholdGraph";
 
 // ------ Timeline colours ------
 // full colour = all 3 conditions met, light = 2 of 3 met
@@ -19,11 +19,11 @@ const LABEL_WIDTH = 64;
 
 const ONE_HOUR = 60 * 60 * 1000;
 
-// how many of a disease's 3 conditions (temperature, humidity, wind) one reading meets
+// how many of a disease's 3 conditions (Temperature, Humidity, wind) one reading meets
 function countConditionsMet(reading, limits) {
     const checks = [
-        reading.temperature >= limits.temperature.min && reading.temperature <= limits.temperature.max,
-        reading.humidity > limits.humidity.min,
+        reading.Temperature >= limits.temperature.min && reading.Temperature <= limits.temperature.max,
+        reading.Humidity > limits.humidity.min,
         reading.wind > limits.wind.min,
     ];
     return checks.filter(Boolean).length; // counts the trues
@@ -65,12 +65,12 @@ function findTimeLabels(readings, timeRange) {
         .map((reading, index) => ({ reading, index }))
         .filter(({ reading, index }) =>
             timeRange === "7d"
-                ? reading.time.getHours() === 0 && index + 24 <= total // start of each full day
-                : reading.time.getHours() % 6 === 0 // every 6 hours
+                ? index % 30 === 0 // start of each full day
+                : index % 30 === 0 // every 6 hours
         )
         .map(({ reading, index }) => ({
             key: index,
-            text: formatTick(reading.time, timeRange),
+            text: timeRange === "7d" ? reading.RealTimeLog.split("T")[0] : reading.RealTimeLog.split("T").pop(),
             // 7 days: middle of the day, 24h: middle of the hour
             position: timeRange === "7d" ? (index + 12) / total : (index + 0.5) / total,
         }))
@@ -81,7 +81,7 @@ function findTimeLabels(readings, timeRange) {
 /**
  * Two rows (powdery and downy) showing which hours had conditions that favour each disease.
  *
- * readings    hourly readings of { time, temperature, humidity, wind }
+ * readings    hourly readings of { time, Temperature, Humidity, wind }
  * thresholds  MILDEW_THRESHOLDS
  * timeRange   "24h" or "7d", changes the time labels
  */
@@ -130,8 +130,8 @@ export default function ConditionTimeline({ readings, thresholds, timeRange }) {
                                         <>
                                             {row.label}: {block.level === "all" ? "all 3" : "2 of 3"} conditions met
                                             <br />
-                                            {formatTooltipTime(readings[block.start].time)} to{" "}
-                                            {formatTooltipTime(new Date(readings[block.end - 1].time.getTime() + ONE_HOUR))}
+                                            {/* {formatTooltipTime(readings[block.start].time)} to{" "}
+                                            {formatTooltipTime(new Date(readings[block.end - 1].time.getTime() + ONE_HOUR))} */}
                                         </>
                                     }
                                 >
