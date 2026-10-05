@@ -8,6 +8,7 @@ import ThresholdChart from "../../components/ThresholdChart/ThresholdChart";
 import {MILDEW_THRESHOLDS} from "./mildewThresholds";
 import {weekOfReadings} from "./mockReadings";
 import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
+import { useSettings } from "../../contexts/SettingsContext";
 
 // UI Libraries mostly Ant design libraries
 import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme, Segmented } from "antd";
@@ -44,6 +45,9 @@ export default function Home() {
     // theme colours from themeConfig passed to the chart
     const {token} = theme.useToken();
 
+    // the central node's name from the Profile page settings
+    const { username } = useSettings();
+
     //which leaf node currently shown from 1 to TOTAL_NODES
     const [node, setNode] = useState(1);
 
@@ -69,7 +73,7 @@ export default function Home() {
     <Flex vertical gap="large">
       {/* Page title */}
       <Flex vertical gap={4}>
-          <Typography.Title level={2} style={{margin: 0}}>Central Node 1 Overview</Typography.Title>
+          <Typography.Title level={2} style={{margin: 0}}>{username} Overview</Typography.Title>
           {/* number nodes being monitored */}
           <Typography.Text type="secondary"> {TOTAL_NODES} Leaf Nodes monitored</Typography.Text>
       </Flex>
