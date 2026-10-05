@@ -2,6 +2,7 @@
 
 // React and NextJS
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 // UI Libraries mostly Ant design libraries
 import { Avatar, Button, Card, Flex, Input, Segmented, Select, Space, Typography, theme } from "antd";
@@ -32,7 +33,15 @@ export default function Profile() {
     // app settings shared with the rest of the app (SettingsContext.jsx)
     const { username, themeMode, readingInterval, updateSetting } = useSettings();
 
+    // logout() forgets who is signed in, then we send them to the login page ourselves
     const { logout } = useAuth();
+    const router = useRouter();
+
+    function handleLogout() {
+        logout();
+        // replace instead of push: the Back button won't return to the app after logging out
+        router.replace("/login");
+    }
 
     // ------ Rename the central node ------
     // what's typed in the box, kept separate so typing doesn't rename anything until Saved
@@ -126,7 +135,7 @@ export default function Profile() {
             </Card>
 
             {/* sign out of the central node */}
-            <Button danger size="large" block icon={<RiLogoutBoxRLine size={18} />} onClick={logout}>
+            <Button danger size="large" block icon={<RiLogoutBoxRLine size={18} />} onClick={handleLogout}>
                 Log out
             </Button>
         </Flex>
