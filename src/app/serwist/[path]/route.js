@@ -11,6 +11,7 @@ createSerwistRoute({
         {url: "/login", revision},
         {url: "/home", revision},
         {url: "/profile", revision},
+        { url: "/manifest.webmanifest", revision },
     ],
     swSrc: "src/app/sw.js",
     useNativeEsbuild: true,
