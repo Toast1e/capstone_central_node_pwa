@@ -9,7 +9,7 @@ import { weekOfReadings } from "./mockReadings";
 import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme, Segmented } from "antd";
+import { Typography, Tag, Flex, Alert, Button, Card, Statistic, theme, Segmented, Empty } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from '@remixicon/react';
 
 import Papa from 'papaparse';
@@ -39,10 +39,10 @@ const timeRangeOptions = [
     { label: "7 days", value: "7d" },
 ];
 
-const fileOptions = [
-    { label: "file 1", value: "csv/mildew_2026-07-08.csv" },
-    { label: "file 2", value: "csv/mildew_2026-07-07 copy.csv" },
-];
+// const fileOptions = [
+//     { label: "file 1", value: ["csv/mildew_2026-07-08.csv"] },
+//     { label: "file 2", value: ["csv/mildew_2026-07-07 copy.csv"] },
+// ];
 
 // orange for temperature
 const TEMPERATURE_COLOUR = "#eb6834";
@@ -66,26 +66,53 @@ export default function Home() {
     const windData = readings.map((reading) => ({ time: reading.time, value: reading.wind, series: "Wind" }));
 
     const [graphReadings, setGraphReadings] = useState([]);
-    const [fileName, setFileName] = useState("csv/mildew_2026-07-08.csv");
+    //const [fileName, setFileName] = useState(["csv/mildew_2026-07-08.csv"]);
+    const weekFileNames = ["csv/mildew_2026-10-04.csv", "csv/mildew_2026-10-05.csv", "csv/mildew_2026-10-06.csv",
+        "csv/mildew_2026-10-07.csv", "csv/mildew_2026-10-08.csv", "csv/mildew_2026-10-09.csv",
+        "csv/mildew_2026-10-10.csv"];
+
+    //const weekFileNames = ["csv/mildew_2026-10-04.csv", "csv/mildew_2026-10-05.csv", "csv/mildew_2026-10-06.csv"];
+
+    const fileName = timeRange === "24h" ? ["csv/mildew_2026-07-08.csv"] : weekFileNames;
+
+    const fileOptions = [
+        { label: "file 1", value: ["csv/mildew_2026-07-08.csv"] },
+        { label: "file 2", value: weekFileNames },
+    ];
 
     useEffect(() => {
-        fetch(fileName)
-            .then((response) => response.text())
-            .then((csvText) => {
-                Papa.parse(csvText, {
-                    header: true,
-                    skipEmptyLines: true,
-                    dynamicTyping: true,
-                    complete: (results) => {
-                        const formattedReadings = results.data.map((row) => ({
-                            RealTimeLog: row['timestamp'],
-                            Temperature: row['temp_c'],
-                            Humidity: row['humidity_pct']
-                        }));
-                        setGraphReadings(formattedReadings);                        
-                    }
-                });
-            })
+        let allReadings = [];
+        let fileNum = 1;
+        const fileDetails = fileName;
+        fileDetails.map((file, index) => (
+            fetch(file)
+                .then((response) => response.text())
+                .then((csvText) => {
+                    Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true,
+                        dynamicTyping: true,
+                        complete: (results) => {
+                            const formattedReadings = results.data.map((row) => ({
+                                RealTimeLog: row['timestamp'],
+                                Temperature: row['temp_c'],
+                                Humidity: row['humidity_pct']
+                            }));
+                            allReadings = allReadings.concat(formattedReadings);
+                            fileNum++;
+                            if (index == fileDetails.length - 1) {
+                                if (index == 0) {
+                                    setGraphReadings(allReadings);
+                                }
+                                else {
+                                    console.log("Graph completed");
+                                    setGraphReadings(allReadings.filter((result, index) => index % 30 === 0));
+                                }
+                            }
+                        }
+                    });
+                })
+        )), []
     });
 
     function calculateDewpoint(humidity, temperature) {
@@ -175,7 +202,7 @@ export default function Home() {
                 {/* chart controls, one row that applies to all charts */}
                 <Flex justify="space-between" align="center" wrap gap="small">
                     <Segmented options={diseaseOptions} value={disease} onChange={setDisease} />
-                    <Segmented options={fileOptions} value={fileName} onChange={setFileName} />
+                    {/* <Segmented options={fileOptions} value={fileName} onChange={setFileName} /> */}
                     <Segmented options={timeRangeOptions} value={timeRange} onChange={setTimeRange} />
                 </Flex>
 
