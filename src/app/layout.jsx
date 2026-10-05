@@ -1,7 +1,6 @@
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import {Plus_Jakarta_Sans, Fraunces} from "next/font/google"; //font import
 import Providers from "./providers";
-import ServiceWorkerRegistration from "../components/ServiceWorkerRegistration";
 
 import "./globals.css";
 
@@ -29,7 +28,6 @@ export default function RootLayout({ children }) {
       <body>
         {/* `layer` puts Ant Design's styles in @layer antd (see globals.css),
             so our own CSS files always win over its defaults. */}
-        <ServiceWorkerRegistration />
         <AntdRegistry layer>
           <Providers>{children}</Providers>
         </AntdRegistry>
