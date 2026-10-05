@@ -65,14 +65,14 @@ function findTimeLabels(readings, timeRange) {
         .map((reading, index) => ({ reading, index }))
         .filter(({ reading, index }) =>
             timeRange === "7d"
-                ? index % 30 === 0 // start of each full day
+                ? index % 7 === 0 // start of each full day
                 : index % 30 === 0 // every 6 hours
         )
         .map(({ reading, index }) => ({
             key: index,
             text: timeRange === "7d" ? reading.RealTimeLog.split("T")[0] : reading.RealTimeLog.split("T").pop(),
             // 7 days: middle of the day, 24h: middle of the hour
-            position: timeRange === "7d" ? (index + 12) / total : (index + 0.5) / total,
+            position: (index + 0.5) / total,
         }))
         // skip labels so close to the ends that they'd stick out of the card
         .filter((label) => label.position > 0.08 && label.position < 0.92);
