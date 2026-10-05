@@ -68,7 +68,7 @@ export default function FarmMap({ selectedId }) {
                             cy={node.y}
                             r={selected ? 6 : 4}
                             fill={selected ? token.colorPrimary : token.colorTextTertiary}
-                            stroke="#ffffff"
+                            stroke={token.colorBgContainer} // ring matches the card: white in light, dark in dark
                             strokeWidth={2}
                         />
                         <text
