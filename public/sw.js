@@ -1,4 +1,4 @@
-const CACHE_NAME = "vitisense-cache-v4";
+const CACHE_NAME = "vitisense-cache-v7";
 const ASSETS_TO_CACHE = [
     "/CSV/mildew_2026-07-07 copy.csv",
     "/CSV/mildew_2026-07-08.csv",
@@ -13,7 +13,7 @@ self.addEventListener("install", (event) => {
         caches
             .open(CACHE_NAME)
             .then((cache) => {
-                cache.addAll(ASSETS_TO_CACHE);
+                return cache.addAll(ASSETS_TO_CACHE);
             }),
     );
     self.skipWaiting();
@@ -27,6 +27,7 @@ self.addEventListener('activate', (event) => {
                     .map(cacheName => caches.delete(cacheName))
             ))
     );
+    self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
