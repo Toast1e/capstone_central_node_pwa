@@ -48,6 +48,9 @@ export default function Alerts() {
   // the alert list, in state so the page updates when an alert is acknowledged
   const [alerts, setAlerts] = useState(alertDetails);
 
+  // which alert is expanded, only one at a time (null when none are)
+  const [openAlertId, setOpenAlertId] = useState(null);
+
   // theme colours from themeConfig.js, used for the severity edges
   const { token } = theme.useToken();
 
@@ -98,7 +101,11 @@ export default function Alerts() {
               <Collapse
                 key={alert.alertID}
                 expandIconPlacement="end"
-                //colour strip on left like with nodes page
+                  // open only if this is the alert that was tapped last
+                activeKey={openAlertId === alert.alertID ? [alert.alertID] : []}
+                  // tapping a closed alert opens it (and closes the others), tapping the open one closes it
+                  onChange={(openKeys)=>setOpenAlertId(openKeys.length>0? alert.alertID : null)}
+                  //colour strip on left like with nodes page
                 style={{borderLeft: `4px solid ${token[severity.edge]}`}}
                 items={[
                   {
