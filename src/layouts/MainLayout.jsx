@@ -2,13 +2,12 @@
 
 import { Layout, Flex, Button, Typography } from "antd";
 import { useRouter, usePathname } from "next/navigation";
-import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine, RiFontSize2 } from "@remixicon/react";
+import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
-import { Header } from "antd/es/layout/layout";
-import path from "path";
+import {useSettings} from "../contexts/SettingsContext";
 
 const { Text } = Typography;
-const { Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 
 // Add an entry here (plus a page under src/app/(main)/) to extend the app bar.
 const NAV_ITEMS = [
@@ -22,7 +21,8 @@ const NAV_ITEMS = [
 export default function MainLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const centralNode = "Central node 1";
+  // the central node's name from the Profile page settings
+  const { username: centralNode } = useSettings();
   let isOnline = true;
 
   return (
