@@ -11,6 +11,12 @@ import { useConnection } from "@/contexts/ConnectionContext";
 const { Text } = Typography;
 const { Content, Footer } = Layout;
 
+const STATUS_DISPLAY = {
+  connecting: { label: "Connecting…", type: "secondary" },
+  connected: { label: "Live", type: "success" },
+  disconnected: { label: "Offline", type: "warning" },
+}
+
 // Add an entry here (plus a page under src/app/(main)/) to extend the app bar.
 const NAV_ITEMS = [
   { key: "home", label: "Home", path: "/home", icon: <RiHome5Line />, worksOffline: true },
@@ -25,6 +31,7 @@ export default function MainLayout({ children }) {
   const pathname = usePathname();
   const centralNode = "Central node 1";
   const { status, isOnline } = useConnection();
+  const display = STATUS_DISPLAY[status];
 
   return (
     <Layout className="layout">
@@ -36,8 +43,8 @@ export default function MainLayout({ children }) {
               {centralNode} |
             </Text>
 
-            <Text type={isOnline ? "success" : "warning"} strong className="textSize">
-              {isOnline ? "Live" : "Offline"}
+            <Text type={ display.type } strong className="textSize">
+              { display.label }
             </Text>
           </Flex>
 
@@ -61,7 +68,7 @@ export default function MainLayout({ children }) {
         >
           {NAV_ITEMS.map((item) => {
             const active = pathname.startsWith(item.path);
-            const disabled = !isOnline && !item.worksOffline;
+            const disabled = status === "connecting" || (status === "disconnected" && !item.worksOffline);
             return (
               <Button
                 key={item.key}

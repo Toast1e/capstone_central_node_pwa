@@ -4,8 +4,9 @@ import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert, S
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
-import { WifiOutlined, DisconnectOutlined } from '@ant-design/icons';
+import { WifiOutlined, DisconnectOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useConnection } from "@/contexts/ConnectionContext";
+import { type } from "node:os";
 
 export default function Login() {
   const { login, loading } = useAuth();
@@ -29,6 +30,11 @@ export default function Login() {
       title: "Not connected to local vineyard hotspot",
       type: "error",
     },
+    connecting: {
+      icon: <LoadingOutlined />,
+      title: "Searching for a connection to local vineyard hotspot",
+      type: "warning"
+    }
   }
 
   return (
