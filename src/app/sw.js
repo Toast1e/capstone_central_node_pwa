@@ -2,6 +2,9 @@ import { NetworkFirst, Serwist } from "serwist";
 
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
+    precacheOptions: {
+        ignoreURLParametersMatching: [/^_rsc$/],
+    },
     skipWaiting: true,
     clientsClaim: true,
     navigationPreload: false,

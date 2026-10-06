@@ -1,6 +1,6 @@
 "use client";
 
-// Component to track the state of the connectivity to the local vineyard hotspot. This is simulates the connection across the entire PWA.
+// Component to track the state of the connectivity to the central node.
 
 import { createContext, useContext, useEffect, useState } from "react";
 
@@ -14,16 +14,15 @@ const ConnectionContext = createContext(null);
 
 // The provider is the component that only has access to the context and can update it. Wraps around the entire app in src/app/providers.jsx.
 export function ConnectionProvider({ children }) {
-    const [status, setStatus] = useState("connected");
+    const [status, setStatus] = useState("connecting");
     const isOnline = status === "connected";
-    const [lastSeen, setLastSeen] = useState(null);
 
     useEffect(() => {
         let cancelled = false;
         let timer;
 
         async function ping() {
-            const controller = new AbortController(); // abort controller is used to ensure that the ping can only be called once.
+            const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
             let reachable = false;
 
@@ -56,7 +55,7 @@ export function ConnectionProvider({ children }) {
     }, []);
 
     return (
-        <ConnectionContext.Provider value={{ status, isOnline, lastSeen }}>
+        <ConnectionContext.Provider value={{ status, isOnline }}>
             {children}
         </ConnectionContext.Provider>
     );

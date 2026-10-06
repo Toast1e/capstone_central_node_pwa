@@ -5,16 +5,19 @@ import { createSerwistRoute } from "@serwist/turbopack";
 const revision = crypto.randomUUID();
 
 export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
-createSerwistRoute({
-    additionalPrecacheEntries: [
-        {url: "/", revision},
-        {url: "/login", revision},
-        {url: "/home", revision},
-        {url: "/profile", revision},
-        { url: "/manifest.webmanifest", revision },
-    ],
-    swSrc: "src/app/sw.js",
-    useNativeEsbuild: true,
-    maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-})
+    createSerwistRoute({
+        additionalPrecacheEntries: [
+            { url: "/", revision },
+            { url: "/login", revision },
+            { url: "/home", revision },
+            { url: "/profile", revision },
+            { url: "/login.txt", revision },
+            { url: "/home.txt", revision },
+            { url: "/profile.txt", revision },
+            { url: "/manifest.webmanifest", revision },
+        ],
+        swSrc: "src/app/sw.js",
+        useNativeEsbuild: true,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+    })
 
