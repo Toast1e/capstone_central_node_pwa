@@ -24,7 +24,7 @@ export default function MainLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const centralNode = "Central node 1";
-  const { status, setStatus, isOnline } = useConnection();
+  const { status, isOnline } = useConnection();
 
   return (
     <Layout className="layout">
