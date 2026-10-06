@@ -1,10 +1,12 @@
 "use client";
 
 // Component to track the state of the connectivity to the local vineyard hotspot. This is simulates the connection across the entire PWA.
-// CURRENTLY USED FOR SIMULATION PRACTICES, BUT CAN EASILY BE EXTENDED WITH THE OFFLINE FUNCTIONALITY IN THE NEAR FUTURE TICKETS.
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
+const PING_URL = "/";
+const PING_INTERVAL_MS = 5000; // wait between next ping from phone to central node.
+const PING_TIMEOUT_MS = 3000; // wait for 3 seconds until connection timesout and state gets switched.
 
 // Context creation to hold the current state of the connection.
 const ConnectionContext = createContext(null);
@@ -14,9 +16,47 @@ const ConnectionContext = createContext(null);
 export function ConnectionProvider({ children }) {
     const [status, setStatus] = useState("connected");
     const isOnline = status === "connected";
+    const [lastSeen, setLastSeen] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        let timer;
+
+        async function ping() {
+            const controller = new AbortController(); // abort controller is used to ensure that the ping can only be called once.
+            const timeout = setTimeout(() => controller.abort(), PING_TIMEOUT_MS);
+            let reachable = false;
+
+            try {
+                await fetch(`${PING_URL}?ping=${Date.now()}`, {
+                    method: "HEAD",
+                    cache: "no-store",
+                    signal: controller.signal,
+                });
+                reachable = true;
+            } catch {
+                reachable = false;
+            } finally {
+                clearTimeout(timeout);
+            }
+
+            if (cancelled) return;
+            setStatus(reachable ? "connected" : "disconnected");
+
+            timer = setTimeout(ping, PING_INTERVAL_MS);
+        }
+
+        ping();
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+        
+    }, []);
 
     return (
-        <ConnectionContext.Provider value={{ status, setStatus, isOnline }}>
+        <ConnectionContext.Provider value={{ status, isOnline, lastSeen }}>
             {children}
         </ConnectionContext.Provider>
     );

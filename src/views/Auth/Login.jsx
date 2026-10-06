@@ -10,7 +10,7 @@ import { useConnection } from "@/contexts/ConnectionContext";
 export default function Login() {
   const { login, loading } = useAuth();
   const router = useRouter();
-  const { status, setStatus, isOnline } = useConnection();
+  const { status, isOnline } = useConnection();
 
   // No credentials or validation yet - any submit logs you in.
   const onFinish = async () => {
@@ -71,7 +71,7 @@ export default function Login() {
               {/* Buttons */}
               <Flex vertical gap="small">
                 <Form.Item>
-                  <Button size="large" type="primary" htmlType="submit" block loading={loading} disabled={!isOnline}>
+                  <Button size="large" type="primary" htmlType="submit" block loading={loading}>
                     Login
                   </Button>
                 </Form.Item>
@@ -88,7 +88,7 @@ export default function Login() {
                 </Flex>
               </Form.Item>
 
-              <Form.Item>
+              {/* <Form.Item>
                 <Flex gap={"5pt"}>
                   <Switch
                     checked={isOnline}
@@ -97,7 +97,7 @@ export default function Login() {
                     unCheckedChildren="Offline"
                   />
                 </Flex>
-              </Form.Item>
+              </Form.Item> */}
 
             </Form>
           </Flex>
