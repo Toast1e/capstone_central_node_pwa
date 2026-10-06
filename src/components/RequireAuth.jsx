@@ -6,9 +6,13 @@ import { useAuth, AUTH_ENABLED } from "@/contexts/AuthContext";
 // Replaces the old react-router <PrivateRoute>. It wraps the whole (main)
 // route group, so every page in there is protected once AUTH_ENABLED is on.
 export default function RequireAuth({ children }) {
-  const { user } = useAuth();
+  const { isAuthenticated, initialized } = useAuth();
 
-  if (AUTH_ENABLED && !user) {
+  if (!initialized) {
+    return null;
+  }
+
+  if (AUTH_ENABLED && !isAuthenticated) {
     redirect("/login");
   }
 

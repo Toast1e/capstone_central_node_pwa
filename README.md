@@ -124,7 +124,9 @@ The Home and Profile pages currently hold **example content only**, to demonstra
 
 ### Authentication
 
-The app has login only - there is no registration. Authentication is currently **stubbed**: the login form checks nothing and every login succeeds. `src/contexts/AuthContext.jsx` holds the placeholder `login()` and an `AUTH_ENABLED` flag (off). When it is switched on, `RequireAuth` redirects signed-out visitors away from every page in `(main)` to `/login`.
+The app has login only - there is no registration. The login compares the submitted password with the bcrypt hash in `NEXT_PUBLIC_PASSWORD_HASH` in `.env`. Escape each `$` in the hash as `\$` so Next.js does not expand it as an environment-variable reference, then restart the dev server or rebuild the app for the change to take effect. Authentication is enabled, and `RequireAuth` redirects signed-out visitors away from every page in `(main)` to `/login`.
+
+Because `NEXT_PUBLIC_PASSWORD_HASH` is bundled into the client app, this is suitable only for a demo/shared-device password, not secure production authentication.
 
 ### Styling
 
