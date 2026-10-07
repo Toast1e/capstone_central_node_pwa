@@ -1,4 +1,3 @@
-import { spawnSync } from "node:child_process";
 import { createSerwistRoute } from "@serwist/turbopack";
 
 // new label for version control of pages. Always re-downloads after each new rebuild.

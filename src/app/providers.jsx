@@ -8,7 +8,7 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 
 export default function Providers({ children }) {
   return (
-    <SerwistProvider swUrl="/serwist/sw.js">
+    <SerwistProvider swUrl="/sw.js">
       <ConfigProvider theme={theme}>
         <ConnectionProvider>
           <AuthProvider>{children}</AuthProvider>
