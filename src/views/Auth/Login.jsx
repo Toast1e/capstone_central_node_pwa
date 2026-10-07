@@ -6,7 +6,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
 import { WifiOutlined, DisconnectOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useConnection } from "@/contexts/ConnectionContext";
-import { type } from "node:os";
 
 export default function Login() {
   const { login, loading } = useAuth();
@@ -82,29 +81,6 @@ export default function Login() {
                   </Button>
                 </Form.Item>
               </Flex>
-
-
-              {/* Section for no connection */}
-              <Form.Item>
-                <Flex vertical align="center" justify="center">
-                  <Typography.Text type="secondary">No Connection?</Typography.Text>
-                  <Button size="large" type="link" onClick={() => router.push("/home")} disabled={isOnline}>
-                    Open last saved readings
-                  </Button>
-                </Flex>
-              </Form.Item>
-
-              {/* <Form.Item>
-                <Flex gap={"5pt"}>
-                  <Switch
-                    checked={isOnline}
-                    onChange={(on) => { setStatus(on ? "connected" : "disconnected"); }}
-                    checkedChildren="Live"
-                    unCheckedChildren="Offline"
-                  />
-                </Flex>
-              </Form.Item> */}
-
             </Form>
           </Flex>
 
