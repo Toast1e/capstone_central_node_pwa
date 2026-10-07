@@ -5,7 +5,6 @@ import { useRouter, usePathname } from "next/navigation";
 import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine, RiFontSize2 } from "@remixicon/react";
 import "./MainLayout.css";
 import { Header } from "antd/es/layout/layout";
-import { useEffect } from "react";
 import { useConnection } from "@/contexts/ConnectionContext";
 
 const { Text } = Typography;
