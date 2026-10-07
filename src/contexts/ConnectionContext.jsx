@@ -27,12 +27,12 @@ export function ConnectionProvider({ children }) {
             let reachable = false;
 
             try {
-                await fetch(`${PING_URL}?ping=${Date.now()}`, {
+                const response = await fetch(`${PING_URL}?ping=${Date.now()}`, {
                     method: "HEAD",
                     cache: "no-store",
                     signal: controller.signal,
                 });
-                reachable = true;
+                reachable = response.ok && response.headers.get("x-vitisense-ping") !== "unreachable";
             } catch {
                 reachable = false;
             } finally {
@@ -51,7 +51,7 @@ export function ConnectionProvider({ children }) {
             cancelled = true;
             clearTimeout(timer);
         };
-        
+
     }, []);
 
     return (
