@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 
 // own components and data
 import { MILDEW_THRESHOLDS } from "./mildewThresholds";
-import { weekOfReadings } from "./mockReadings";
 import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
 import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
 
@@ -50,22 +49,17 @@ const timeRangeOptions = [
   { label: "7 days", value: "7d" },
 ];
 
-// const fileOptions = [
-//     { label: "file 1", value: ["csv/mildew_2026-07-08.csv"] },
-//     { label: "file 2", value: ["csv/mildew_2026-07-07 copy.csv"] },
-// ];
-
 // ------ CSV files ------
 // Constants live outside the component so they are not recreated on every render
 const dayFiles = ["csv/mildew_2026-07-08.csv"];
 const weekFileNames = [
-  "csv/mildew_2026-07-07.csv",
+  "csv/mildew_2026-07-13.csv",
   "csv/mildew_2026-07-08.csv",
-  "csv/mildew_2026-07-09.csv",
   "csv/mildew_2026-07-10.csv",
+  "csv/mildew_2026-07-09.csv",
   "csv/mildew_2026-07-11.csv",
   "csv/mildew_2026-07-12.csv",
-  "csv/mildew_2026-07-13.csv",
+  "csv/mildew_2026-07-07.csv",
 ];
 
 async function loadCsv(file) {
@@ -98,6 +92,11 @@ function calculateDewpoint(humidity, temperature) {
   return Math.round(((243.12 * gamma) / (17.62 - gamma)) * 10) / 10; // 1 decimal place
 }
 
+// timestamp -> milliseconds, used for sorting.
+function toTime(ts) {
+  return new Date(String(ts).replace(" ", "T")).getTime();
+}
+
 // in 7 day mode only every Nth reading is plotted to keep the chart light
 const WEEK_DOWNSAMPLE_STEP = 30;
 
@@ -120,21 +119,6 @@ export default function Home() {
 
   // thresholds for diseases
   const thresholds = MILDEW_THRESHOLDS[disease];
-
-  // last 24 hours or the whole week 7 days
-  // const readings = timeRange === "24h" ? weekOfReadings.slice(-25) : weekOfReadings;
-  // const windData = readings.map((reading) => ({ time: reading.time, value: reading.wind, series: "Wind" }));
-
-  //const [fileName, setFileName] = useState(["csv/mildew_2026-07-08.csv"]);
-
-  //const weekFileNames = ["csv/mildew_2026-10-04.csv", "csv/mildew_2026-10-05.csv", "csv/mildew_2026-10-06.csv"];
-
-  // const fileName = timeRange === "24h" ? ["csv/mildew_2026-07-08.csv"] : weekFileNames;
-
-  // const fileOptions = [
-  //     { label: "file 1", value: ["csv/mildew_2026-07-08.csv"] },
-  //     { label: "file 2", value: weekFileNames },
-  // ];
 
   // load the CSV files, only when the time range changes
 
@@ -159,10 +143,24 @@ export default function Home() {
         }
       });
 
+      // Drop rows with an unreadable timestamp, then put all
+      // readings in time order BEFORE downsampling, so the files can arrive
+      // or be listed in any order
+      const sorted = loaded
+        .filter((r) => !Number.isNaN(toTime(r.RealTimeLog)))
+        .sort((a, b) => toTime(a.RealTimeLog) - toTime(b.RealTimeLog));
+
+      // Remove duplicates. If two files contain the same
+      // Reading (same timestamp) only one is kept.
+      const unique = [
+        ...new Map(sorted.map((r) => [toTime(r.RealTimeLog), r])).values(),
+      ];
+
+      // Uses `sorted` instead of `loaded`
       setGraphReadings(
         timeRange === "24h"
-          ? loaded
-          : loaded.filter((_, i) => i % WEEK_DOWNSAMPLE_STEP === 0),
+          ? sorted
+          : sorted.filter((_, i) => i % WEEK_DOWNSAMPLE_STEP === 0),
       );
     }
     load().catch(console.error);
@@ -171,41 +169,6 @@ export default function Home() {
       cancelled = true;
     };
   }, [timeRange]);
-
-  // useEffect(() => {
-  //     let allReadings = [];
-  //     let fileNum = 1;
-  //     const fileDetails = fileName;
-  //     fileDetails.map((file, index) => (
-  //         fetch(file)
-  //             .then((response) => response.text())
-  //             .then((csvText) => {
-  //                 Papa.parse(csvText, {
-  //                     header: true,
-  //                     skipEmptyLines: true,
-  //                     dynamicTyping: true,
-  //                     complete: (results) => {
-  //                         const formattedReadings = results.data.map((row) => ({
-  //                             RealTimeLog: row['timestamp'],
-  //                             Temperature: row['temp_c'],
-  //                             Humidity: row['humidity_pct']
-  //                         }));
-  //                         allReadings = allReadings.concat(formattedReadings);
-  //                         fileNum++;
-  //                         if (index == fileDetails.length - 1) {
-  //                             if (index == 0) {
-  //                                 setGraphReadings(allReadings);
-  //                             }
-  //                             else {
-  //                                 console.log("Graph completed");
-  //                                 setGraphReadings(allReadings.filter((result, index) => index % 30 === 0));
-  //                             }
-  //                         }
-  //                     }
-  //                 });
-  //             })
-  //     )), []
-  // });
 
   const graphHumidity = graphReadings.map((reading) => ({
     time: reading.RealTimeLog,
@@ -231,11 +194,6 @@ export default function Home() {
     }
     return points;
   });
-
-  // const graphTemp = graphReadings.flatMap((reading) => [
-  //     { time: reading.RealTimeLog, value: reading.Temperature, series: "Temperature" },
-  //     { time: reading.RealTimeLog, value: calculateDewpoint(reading.Humidity, reading.Temperature), series: "Dew point" },
-  // ]);
 
   return (
     <Flex vertical gap="large">
