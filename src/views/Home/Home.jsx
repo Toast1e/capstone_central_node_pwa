@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 
 // own components and data
-import { MILDEW_THRESHOLDS } from "./mildewThresholds";
+import { MILDEW_THRESHOLDS as mildewThresholds } from "./mildewThresholds";
 import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
 import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
 
@@ -19,7 +19,6 @@ import {
   Statistic,
   theme,
   Segmented,
-  Empty,
 } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 
@@ -28,7 +27,7 @@ import Papa from "papaparse";
 // ------ Placeholder data ------
 // TODO make page elements dynamic based on backend later
 
-const TOTAL_NODES = 6;
+const totalNodes = 6;
 
 // "sensor readings" one card per reading type
 const metrics = [
@@ -51,7 +50,7 @@ const timeRangeOptions = [
 
 // ------ CSV files ------
 // Constants live outside the component so they are not recreated on every render
-const dayFiles = ["csv/mildew_2026-07-12.csv"];
+const dayFiles = ["csv/mildew_2026-07-10.csv"];
 const weekFileNames = [
   "csv/mildew_2026-07-13.csv",
   "csv/mildew_2026-07-08.csv",
@@ -97,17 +96,17 @@ function toTime(ts) {
   return new Date(String(ts).replace(" ", "T")).getTime();
 }
 
-// in 7 day mode only every Nth reading is plotted to keep the chart light
-const WEEK_DOWNSAMPLE_STEP = 30;
+// The charts and the timeline now
+// work out the 7 day view from all readings themselves.
 
 // orange for temperature
-const TEMPERATURE_COLOUR = "#eb6834";
+const temperatureColour = "#eb6834";
 
 export default function Home() {
   // theme colours from themeConfig passed to the chart
   const { token } = theme.useToken();
 
-  //which leaf node currently shown from 1 to TOTAL_NODES
+  //which leaf node currently shown from 1 to totalNodes
   const [node, setNode] = useState(1);
 
   // which disease's risk zones the charts show, and time period shown
@@ -118,7 +117,7 @@ export default function Home() {
   const [graphReadings, setGraphReadings] = useState([]);
 
   // thresholds for diseases
-  const thresholds = MILDEW_THRESHOLDS[disease];
+  const thresholds = mildewThresholds[disease];
 
   // load the CSV files, only when the time range changes
 
@@ -156,13 +155,10 @@ export default function Home() {
         ...new Map(sorted.map((r) => [toTime(r.RealTimeLog), r])).values(),
       ];
 
-      // Uses `sorted` instead of `loaded`
-      setGraphReadings(
-        sorted
-        // timeRange === "24h"
-        //   ? sorted
-        //   : sorted.filter((_, i) => i % WEEK_DOWNSAMPLE_STEP === 0),
-      );
+      // All readings (duplicates removed) for BOTH ranges. The old
+      // "every 30th row" thinning for 7 days left the chart with too few
+      // points per slot, so the line broke into single dots.
+      setGraphReadings(unique);
     }
     load().catch(console.error);
 
@@ -177,40 +173,22 @@ export default function Home() {
     series: "Humidity",
   }));
 
-  //const graphTemp = graphReadings.flatMap((reading) => {
-  // const points = [
-  //   {
-  //     time: reading.RealTimeLog,
-  //     value: reading.Temperature,
-  //     series: "Temperature",
-  //   },
-  // ];
-  // const dewpoint = calculateDewpoint(reading.Humidity, reading.Temperature);
-  // if (dewpoint !== null) {
-  //   points.push({
-  //     time: reading.RealTimeLog,
-  //     value: dewpoint,
-  //     series: "Dew point",
-  //   });
-  // }
-  // return points;
-  //});
-
-  const graphTemp = graphReadings.flatMap((reading) => ({
-    time: reading.RealTimeLog,
-    value: reading.Temperature,
-    series: "Temperature",
-  }));
-
-  const graphDewPoint = graphReadings.flatMap((reading) => {
-    const dewpoint = calculateDewpoint(reading.Humidity, reading.Temperature);
+  const graphTemp = graphReadings.flatMap((reading) => {
     const points = [
       {
         time: reading.RealTimeLog,
-        value: dewpoint,
-        series: "Dew point",
+        value: reading.Temperature,
+        series: "Temperature",
       },
     ];
+    const dewpoint = calculateDewpoint(reading.Humidity, reading.Temperature);
+    if (dewpoint !== null) {
+      points.push({
+        time: reading.RealTimeLog,
+        value: dewpoint,
+        series: "Dew point",
+      });
+    }
     return points;
   });
 
@@ -223,7 +201,7 @@ export default function Home() {
           {/* number nodes being monitored */}
           <Typography.Text type="secondary">
             {" "}
-            {TOTAL_NODES} Leaf Nodes monitored
+            {totalNodes} Leaf Nodes monitored
           </Typography.Text>
         </Flex>
       </Flex>
@@ -263,12 +241,12 @@ export default function Home() {
           {/* current selected node label */}
           <Typography.Text strong>Leaf Node {node}</Typography.Text>
 
-          {/* disable next button if node number === TOTAL_NODES i.e. on last LN */}
+          {/* disable next button if node number === totalNodes i.e. on last LN */}
           <Button
             type="text"
             aria-label="Next leaf node"
             icon={<RiArrowRightLine size={18} />}
-            disabled={node === TOTAL_NODES}
+            disabled={node === totalNodes}
             onClick={() => setNode(node + 1)}
           />
         </Flex>
@@ -312,7 +290,7 @@ export default function Home() {
         {/* timeline of when each disease's conditions were met */}
         <ConditionTimeline
           readings={graphReadings}
-          thresholds={{ [disease]: MILDEW_THRESHOLDS[disease] }}
+          thresholds={{ [disease]: mildewThresholds[disease] }}
           timeRange={timeRange}
         />
 
@@ -320,35 +298,35 @@ export default function Home() {
         <ThresholdGraph
           title="Temperature and dew point"
           data={graphTemp}
-          dewpointData={graphDewPoint}
           colors={{
-            Temperature: TEMPERATURE_COLOUR,
+            Temperature: temperatureColour,
             "Dew point": token.colorPrimary,
           }}
           unit="°C"
           yDomain={[0, 40]}
-          timeRange={timeRange}
           riskZone={{
             from: thresholds.temperature.min,
             to: thresholds.temperature.max,
             label: `${thresholds.label} risk: ${thresholds.temperature.min}–${thresholds.temperature.max} °C`,
           }}
+          // CHANGE 4: the chart needs this to know whether to show 24h or 7 days
+          timeRange={timeRange}
         />
 
         {/* humidity chart */}
         <ThresholdGraph
           title="Relative humidity"
           data={graphHumidity}
-          dewpointData={null}
           colors={{ Humidity: token.colorPrimary }}
           unit="%"
           yDomain={[0, 100]}
-          timeRange={timeRange}
           riskZone={{
             from: thresholds.humidity.min,
             to: 100,
             label: `${thresholds.label} risk: above ${thresholds.humidity.min}%`,
           }}
+          // CHANGE 4: the chart needs this to know whether to show 24h or 7 days
+          timeRange={timeRange}
         />
 
         {/* wind chart
