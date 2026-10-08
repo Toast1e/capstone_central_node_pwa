@@ -51,7 +51,7 @@ const timeRangeOptions = [
 
 // ------ CSV files ------
 // Constants live outside the component so they are not recreated on every render
-const dayFiles = ["csv/mildew_2026-07-08.csv"];
+const dayFiles = ["csv/mildew_2026-07-12.csv"];
 const weekFileNames = [
   "csv/mildew_2026-07-13.csv",
   "csv/mildew_2026-07-08.csv",
@@ -158,9 +158,10 @@ export default function Home() {
 
       // Uses `sorted` instead of `loaded`
       setGraphReadings(
-        timeRange === "24h"
-          ? sorted
-          : sorted.filter((_, i) => i % WEEK_DOWNSAMPLE_STEP === 0),
+        sorted
+        // timeRange === "24h"
+        //   ? sorted
+        //   : sorted.filter((_, i) => i % WEEK_DOWNSAMPLE_STEP === 0),
       );
     }
     load().catch(console.error);
@@ -176,22 +177,40 @@ export default function Home() {
     series: "Humidity",
   }));
 
-  const graphTemp = graphReadings.flatMap((reading) => {
+  //const graphTemp = graphReadings.flatMap((reading) => {
+  // const points = [
+  //   {
+  //     time: reading.RealTimeLog,
+  //     value: reading.Temperature,
+  //     series: "Temperature",
+  //   },
+  // ];
+  // const dewpoint = calculateDewpoint(reading.Humidity, reading.Temperature);
+  // if (dewpoint !== null) {
+  //   points.push({
+  //     time: reading.RealTimeLog,
+  //     value: dewpoint,
+  //     series: "Dew point",
+  //   });
+  // }
+  // return points;
+  //});
+
+  const graphTemp = graphReadings.flatMap((reading) => ({
+    time: reading.RealTimeLog,
+    value: reading.Temperature,
+    series: "Temperature",
+  }));
+
+  const graphDewPoint = graphReadings.flatMap((reading) => {
+    const dewpoint = calculateDewpoint(reading.Humidity, reading.Temperature);
     const points = [
       {
         time: reading.RealTimeLog,
-        value: reading.Temperature,
-        series: "Temperature",
-      },
-    ];
-    const dewpoint = calculateDewpoint(reading.Humidity, reading.Temperature);
-    if (dewpoint !== null) {
-      points.push({
-        time: reading.RealTimeLog,
         value: dewpoint,
         series: "Dew point",
-      });
-    }
+      },
+    ];
     return points;
   });
 
@@ -301,12 +320,14 @@ export default function Home() {
         <ThresholdGraph
           title="Temperature and dew point"
           data={graphTemp}
+          dewpointData={graphDewPoint}
           colors={{
             Temperature: TEMPERATURE_COLOUR,
             "Dew point": token.colorPrimary,
           }}
           unit="°C"
           yDomain={[0, 40]}
+          timeRange={timeRange}
           riskZone={{
             from: thresholds.temperature.min,
             to: thresholds.temperature.max,
@@ -318,9 +339,11 @@ export default function Home() {
         <ThresholdGraph
           title="Relative humidity"
           data={graphHumidity}
+          dewpointData={null}
           colors={{ Humidity: token.colorPrimary }}
           unit="%"
           yDomain={[0, 100]}
+          timeRange={timeRange}
           riskZone={{
             from: thresholds.humidity.min,
             to: 100,

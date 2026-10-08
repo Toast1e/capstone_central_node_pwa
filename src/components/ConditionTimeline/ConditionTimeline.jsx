@@ -60,17 +60,20 @@ function countHours(blocks, level) {
 // where the time labels go along the bottom
 function findTimeLabels(readings, timeRange) {
     const total = readings.length;
+    const hourTimeline = Array.from({ length: 24 }, (_, i) =>
+        i.toString().padStart(2, "0") + ':00'
+    );
 
     return readings
         .map((reading, index) => ({ reading, index }))
         .filter(({ reading, index }) =>
             timeRange === "7d"
-                ? index % 7 === 0 // start of each full day
-                : index % 30 === 0 // every 6 hours
+                ? index % 24 === 0 // start of each full day
+                : index % 6 === 0 // every 6 hours
         )
         .map(({ reading, index }) => ({
             key: index,
-            text: timeRange === "7d" ? reading.RealTimeLog.split("T")[0] : reading.RealTimeLog.split("T").pop(),
+            text: timeRange === "7d" ? new Date(reading.RealTimeLog).toLocaleDateString('en-ZA') : hourTimeline.filter(( _, i ) => i % 3 === 0),
             // 7 days: middle of the day, 24h: middle of the hour
             position: (index + 0.5) / total,
         }))

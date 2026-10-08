@@ -25,6 +25,84 @@ const Line = dynamic(
 //     return time.toLocaleString("en-ZA", { weekday: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 // }
 
+function convertToHourlyFormat(data) {
+    const groupedHours = data.reduce((accumulator, item) => {
+        const time = new Date(item.time);
+        time.setMinutes(0, 0, 0);
+
+        const hour = time.getHours().toString().padStart(2, "0") + ':00';
+        if (!accumulator[hour]) {
+            accumulator[hour] = {
+                sum: 0,
+                count: 0
+            }
+        }
+
+        accumulator[hour].sum += item.value;
+        accumulator[hour].count++;
+        return accumulator;
+    }, []);
+
+    const hourlyData = Object.keys(groupedHours).map((hour, index) => ({
+        time: hour,
+        value: (groupedHours[hour].sum / groupedHours[hour].count).toFixed(2),
+        series: data[index]?.series
+    }));
+
+    console.log(hourlyData);
+
+    const hourTimeline = Array.from({ length: 24 }, (_, i) =>
+        i.toString().padStart(2, "0") + ':00'
+    );
+
+    let allHours = [];
+    hourTimeline.map((hour, index) => {
+        if (hour != hourlyData[index]?.time){
+            allHours.push({
+                time: hour,
+                value: null,
+                series: data[index]?.series
+            });
+        }
+        else{
+            allHours.push({
+                time: hour,
+                value: hourlyData[index]?.value,
+                series: data[index]?.series
+            });
+        }
+    });
+
+    console.log(allHours);
+
+    return allHours;
+}
+
+function convertToWeeklyFormat(data) {
+    const groupedDays = data.reduce((accumulator, item) => {
+        const time = new Date(item.time).toLocaleDateString('en-ZA');
+
+        if (!accumulator[time]) {
+            accumulator[time] = {
+                sum: 0,
+                count: 0
+            }
+        }
+
+        accumulator[time].sum += item.value;
+        accumulator[time].count++;
+        return accumulator;
+    }, []);
+
+    const dailyData = Object.keys(groupedDays).map((day, index) => ({
+        time: day,
+        value: (groupedDays[day].sum / groupedDays[day].count).toFixed(2),
+        series: data[index]?.series
+    }));
+
+    return dailyData;
+}
+
 /**
  * Line chart of sensor readings with a shaded mildew risk zone.
  *
@@ -35,22 +113,26 @@ const Line = dynamic(
  * riskZone   { from, to, label } range to shade
  */
 
-export default function ThresholdChart({ title, data, colors, unit, yDomain, riskZone }) {
+export default function ThresholdChart({ title, data, dewpointData, colors, unit, yDomain, riskZone, timeRange }) {
     // theme colours from themeConfig.js
     const { token } = theme.useToken();
-
     const seriesNames = Object.keys(colors);
+
+    let formattedData = timeRange === "24h" ? convertToHourlyFormat(data) : convertToWeeklyFormat(data);
+    const formattedDewPoint = dewpointData !== null ? (timeRange === "24h" ? convertToHourlyFormat(dewpointData) : convertToWeeklyFormat(dewpointData)) : null;
+    formattedData = formattedDewPoint !== null ? formattedData.concat(formattedDewPoint) : formattedData;
 
     return (
         <Card title={title} size="small">
             <Line
-                data={data}
+                data={formattedData}
                 xField="time"
                 yField="value"
                 colorField="series"
                 height={320}
                 // thin 2px lines
                 style={{ lineWidth: 2 }}
+                connectNulls={true}
                 scale={{
                     y: { domain: yDomain, nice: false },
                     // each series always keeps its own colour
