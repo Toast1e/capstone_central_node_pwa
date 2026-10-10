@@ -1,11 +1,11 @@
 "use client";
 
 // React and NextJS
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 // UI Libraries mostly Ant design libraries
-import { Avatar, Button, Card, Flex, Input, Segmented, Select, Space, Typography, theme } from "antd";
+import { Alert, Avatar, Button, Card, Flex, Input, Segmented, Select, Space, Typography, theme } from "antd";
 import { RiLogoutBoxRLine, RiMoonLine, RiRouterLine, RiSmartphoneLine, RiSunLine } from "@remixicon/react";
 
 // Our own contexts
@@ -31,7 +31,16 @@ export default function Profile() {
     const { token } = theme.useToken();
 
     // app settings shared with the rest of the app (SettingsContext.jsx)
-    const { username, themeMode, readingInterval, updateSetting } = useSettings();
+    const {
+        centralNodeName,
+        centralNodeDescription,
+        centralNodeLoading,
+        centralNodeSaving,
+        themeMode,
+        readingInterval,
+        updateSetting,
+        updateCentralNodeName,
+    } = useSettings();
 
     // logout() forgets who is signed in, then we send them to the login page ourselves
     const { logout } = useAuth();
@@ -45,17 +54,25 @@ export default function Profile() {
 
     // ------ Rename the central node ------
     // what's typed in the box, kept separate so typing doesn't rename anything until Saved
-    const [newName, setNewName] = useState(username);
-
-    // when the saved name loads (or is saved), show it in the box
-    useEffect(() => {
-        setNewName(username);
-    }, [username]);
+    const [nameDraft, setNameDraft] = useState(null);
+    const [nameError, setNameError] = useState(null);
+    const newName = nameDraft ?? centralNodeName ?? "";
 
     // trim() removes spaces at the start and end, so "  " doesn't count as a name
     const trimmedName = newName.trim();
     // only allow Save when there's a name and it's different from the current one
-    const nameChanged = trimmedName !== "" && trimmedName !== username;
+    const nameChanged = trimmedName !== "" && trimmedName !== centralNodeName;
+
+    async function saveName() {
+        if (!nameChanged || centralNodeSaving) return;
+        setNameError(null);
+        try {
+            await updateCentralNodeName(trimmedName);
+            setNameDraft(null);
+        } catch (err) {
+            setNameError(err.message);
+        }
+    }
 
     return (
         <Flex vertical gap="large">
@@ -71,7 +88,12 @@ export default function Profile() {
                         style={{ background: token.colorPrimaryBg, color: token.colorPrimary, flexShrink: 0 }}
                     />
                     <Flex vertical>
-                        <Typography.Title level={4} style={{ margin: 0 }}>{username}</Typography.Title>
+                        <Typography.Title level={4} style={{ margin: 0 }}>
+                            {centralNodeName ?? (centralNodeLoading ? "Loading central node…" : "Central node unavailable")}
+                        </Typography.Title>
+                        {centralNodeDescription && (
+                            <Typography.Text type="secondary">{centralNodeDescription}</Typography.Text>
+                        )}
                         <Typography.Text type="secondary">Signed in on this phone</Typography.Text>
                     </Flex>
                 </Flex>
@@ -103,18 +125,24 @@ export default function Profile() {
                         <Space.Compact block>
                             <Input
                                 value={newName}
-                                onChange={(event) => setNewName(event.target.value)}
+                                onChange={(event) => setNameDraft(event.target.value)}
                                 // Enter on the keyboard saves too
-                                onPressEnter={() => nameChanged && updateSetting("username", trimmedName)}
-                                maxLength={30}
+                                onPressEnter={saveName}
+                                maxLength={50}
                                 aria-label="Central node name"
                             />
-                            <Button type="primary" disabled={!nameChanged} onClick={() => updateSetting("username", trimmedName)}>
+                            <Button
+                                type="primary"
+                                disabled={!nameChanged || centralNodeLoading || centralNodeSaving}
+                                loading={centralNodeSaving}
+                                onClick={saveName}
+                            >
                                 Save
                             </Button>
                         </Space.Compact>
+                        {nameError && <Alert type="error" showIcon title="Couldn't save central-node name" description={nameError} />}
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            Shown in the top bar and on the Home page.
+                            Shown on the login page, app header, Home, Alerts, and Profile.
                         </Typography.Text>
                     </Flex>
 

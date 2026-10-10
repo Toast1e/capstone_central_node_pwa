@@ -1,34 +1,19 @@
 "use client";
 
 // React and NextJS
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // UI Libraries--Ant design libraries
-import {Flex, Tag, Typography, Card, theme} from "antd";
+import {Flex, Tag, Typography, Card, Alert, Spin, theme} from "antd";
 import { RiCpuLine, RiArrowRightSLine } from "@remixicon/react";
 
 // Our own components
 import LeafNodeModal from "./LeafNodeModal";
+import { apiGet } from "@/lib/api";
+import { useSettings } from "@/contexts/SettingsContext";
 
-// ------ Placeholder data ------
-// TODO replace with data from the backend
-const centralNode = {
-    name: "Raspberry Pi 4B (Gateway)",
-    uptime: "14 days",
-    storageFree: "68%",
-    hotspot: "Active",
-    phonesConnected: 3,
-    database: "Syncing OK",
-};
-
-const leafNodes = [
-    { id: "LN-01", battery: 88, connection: "GOOD", lastSeen: "14:56" },
-    { id: "LN-02", battery: 91, connection: "GOOD", lastSeen: "14:56" },
-    { id: "LN-03", battery: 76, connection: "LOW", lastSeen: null },
-    { id: "LN-04", battery: 83, connection: "GOOD", lastSeen: "14:56" },
-    { id: "LN-05", battery: 34, connection: "NONE", lastSeen: null },
-    { id: "LN-06", battery: 94, connection: "GOOD", lastSeen: "14:56" },
-];
+// how often the page re-fetches, in ms
+const REFRESH_MS = 30000;
 
 // ------ Connection status display ------
 // tag label and colour for each connection level
@@ -38,7 +23,61 @@ const connectionStatus = {
     NONE: { label: "NO SIGNAL", colour: "error", edge: "colorError" },
 };
 
+// ------ Backend -> UI shape ------
+// the API sends unix seconds and numeric IDs, the cards want "LN-01" and "14:56".
+// keeps the same fields the placeholder data had (id, battery, connection, lastSeen) so LeafNodeModal still works
+function toLeafNode(n) {
+    return {
+        id: `LN-${String(n.leafNodeID).padStart(2, "0")}`,
+        leafNodeID: n.leafNodeID,
+        battery: n.leafNodeBattery,   // null until the leaf firmware sends "battery"
+        connection: n.connection,
+        lastSeen: n.lastConnectedAt
+            ? new Date(n.lastConnectedAt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : null,
+        rssi: n.rssi,
+        snr: n.snr,
+    };
+}
+
+// seconds -> "14 days" / "5 hours" / "12 minutes"
+function formatUptime(seconds) {
+    if (seconds == null) return "—";
+    const days = Math.floor(seconds / 86400);
+    if (days >= 1) return `${days} day${days === 1 ? "" : "s"}`;
+    const hours = Math.floor(seconds / 3600);
+    if (hours >= 1) return `${hours} hour${hours === 1 ? "" : "s"}`;
+    return `${Math.floor(seconds / 60)} minutes`;
+}
+
 export default function Nodes() {
+    // central-node information is shared from SettingsContext; leaf status is page-specific.
+    const { centralNode } = useSettings();
+    const [leafNodes, setLeafNodes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            try {
+                const leaves = await apiGet("/api/leafnodes/status");
+                if (cancelled) return;
+                setLeafNodes(leaves.leafNodes.map(toLeafNode));
+                setError(null);
+            } catch (err) {
+                if (!cancelled) setError(err.message);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        load();
+        const timer = setInterval(load, REFRESH_MS);
+        return () => { cancelled = true; clearInterval(timer); };
+    }, []);
+
     // number of leaf nodes with active connection, show in header tag
     const nodesActivelyConnected = leafNodes.filter((node) => node.connection !== "NONE").length;
 
@@ -54,6 +93,8 @@ export default function Nodes() {
         setModalOpen(true);
     }
 
+  if (loading) return <Flex justify="center"><Spin /></Flex>;
+
   return (
       <Flex vertical gap="large">
           <Flex vertical gap="middle">
@@ -65,7 +106,11 @@ export default function Nodes() {
               </Flex>
           </Flex>
 
+          {/* shown when the central node can't be reached, old data stays on screen below */}
+          {error && <Alert type="error" showIcon title="Can't reach the central node" description={error} />}
+
           {/* central node status */}
+          {centralNode && (
           <Card>
               <Flex gap="middle" align="start">
                   {/* chip icon, flexShrink: 0 stops it getting squashed on narrow screens */}
@@ -76,21 +121,28 @@ export default function Nodes() {
                       <Typography.Title level={4} style={{margin:0}}>{centralNode.name}</Typography.Title>
                       {/* central node basic info */}
                       <Typography.Text type="secondary">
-                          Uptime: {centralNode.uptime}  Storage: {centralNode.storageFree} free
+                          Uptime: {formatUptime(centralNode.uptimeSeconds)}  Storage: {centralNode.storageFreePct}% free
                       </Typography.Text>
 
                       <ul style={{margin: "8px 0 0", paddingLeft: 20 }}>
+                          {/* the API can't see the Pi's hotspot yet, so these only show once it sends them */}
+                          {centralNode.hotspot != null && (
+                              <li>
+                                  WiFi Hotspot: <Typography.Text strong>{centralNode.hotspot}</Typography.Text>{" "}
+                                  {centralNode.phonesConnected != null && `(${centralNode.phonesConnected} phones connected)`}
+                              </li>
+                          )}
                           <li>
-                              WiFi Hotspot: <Typography.Text strong>{centralNode.hotspot}</Typography.Text>{" "}
-                              ({centralNode.phonesConnected} phones connected)
+                              LoRa receiver: <Typography.Text strong>{centralNode.serialConnected ? "Connected" : "Not connected"}</Typography.Text>
                           </li>
                           <li>
-                              Database: <Typography.Text strong>{centralNode.database}</Typography.Text>
+                              Database: <Typography.Text strong>{centralNode.databaseOk ? "OK" : "Error"}</Typography.Text>
                           </li>
                       </ul>
                   </Flex>
               </Flex>
           </Card>
+          )}
 
           {/* leaf nodes statuses */}
           <Flex vertical gap="small">
@@ -114,7 +166,7 @@ export default function Nodes() {
                               <Flex justify="space-between" align="center" gap="small">
                                   <Flex vertical>
                                       <Typography.Text strong>{node.id}</Typography.Text>
-                                      <Typography.Text>Battery {node.battery}%</Typography.Text>
+                                      <Typography.Text>Battery {node.battery != null ? `${node.battery}%` : "—"}</Typography.Text>
                                       <Typography.Text type="secondary">
                                           Connection: {node.connection}
                                           {node.lastSeen && ` ${node.lastSeen}`} {/*only if time available*/}
