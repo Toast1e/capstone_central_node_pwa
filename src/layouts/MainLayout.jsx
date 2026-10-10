@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout, Flex, Button, Typography } from "antd";
+import { Layout, Flex, Button, Typography, Alert } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
@@ -22,7 +22,9 @@ export default function MainLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   // the central node's name from the Profile page settings
-  const { username: centralNode } = useSettings();
+  const { centralNodeName, centralNodeLoading, centralNodeError } = useSettings();
+  const centralNodeLabel = centralNodeName
+    ?? (centralNodeLoading ? "Loading central node…" : "Central node unavailable");
   let isOnline = true;
 
   return (
@@ -32,7 +34,7 @@ export default function MainLayout({ children }) {
         <Flex align="center" className="top-app-bar-items" justify="space-between">
           <Flex gap={"5pt"}>
             <Text strong className="textSize">
-              {centralNode} |
+              {centralNodeLabel} |
             </Text>
 
             <Text type={isOnline ? "success" : "warning"} strong className="textSize">
@@ -46,7 +48,18 @@ export default function MainLayout({ children }) {
         </Flex>
       </Header>
 
-      <Content className="content">{children}</Content>
+      <Content className="content">
+        {centralNodeError && (
+          <Alert
+            type="error"
+            showIcon
+            title="Couldn't load central-node information"
+            description={centralNodeError}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {children}
+      </Content>
 
       {/* Bottom app bar */}
       <Footer className="app-bar">

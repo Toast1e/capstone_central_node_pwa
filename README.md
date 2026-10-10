@@ -26,6 +26,8 @@ The terminal will print two URLs:
 - **Local** – open this in a browser of the machine.
 - **Network** – open this on any other device (phone, tablet, laptop) connected to the **same Wi-Fi / LAN** to test the app there. The IP address is your machine's local network address and will differ per machine.
 
+When testing over the network, the backend must allow the frontend's network origin through CORS (for example, `http://192.168.1.60:3000`). Allowing only `http://localhost:3000` works on the development machine but not on a phone. Restart or rebuild the backend after changing its CORS configuration.
+
 Other scripts:
 
 | Command         | What it does                     |
@@ -135,6 +137,7 @@ UI components come from [Ant Design](https://ant.design); the brand colour is se
 The app runs on the central node's Raspberry Pi. Phones join the Pi's Wi-Fi and open it in the browser, or install it to the home screen.
 
 - **Static export.** `next.config.ts` sets `output: "export"`, so `npm run build` produces plain HTML/CSS/JS in `out/` and no Node.js server runs on the Pi. That rules out anything that needs a server: route handlers, server actions, `cookies()`/`headers()`, and `redirects`/`rewrites` in `next.config.ts`. Fetch data from the Pi's API with relative URLs, e.g. `fetch("/api/latest")`. Cookies the API sets are sent along automatically.
+- **Central-node details.** The app loads the central-node record from `GET /api/centralnode`; the Profile page saves name changes with `PATCH /api/centralnode`. The name and description come from the backend, while appearance and reading-interval preferences stay on each device.
 - **Built and served by the backend repo.** The `web` container in [capstone_central_node_backend](https://github.com/Toast1e/capstone_central_node_backend) builds this repo and serves `out/` with NGINX, next to the API. It expects the two repos in the same folder. Its README has the deploy steps.
 - **Installable app.** `src/app/manifest.js` describes the app to phones (name, colours, icons). Installing only works when the site is served over HTTPS.
 - **Icons.** `scripts/generate-icons.mjs` draws the icon and writes `public/icons/*`, `src/app/apple-icon.png` and `src/app/favicon.ico`. To change it, edit the SVG in that script, run `npm run icons`, and commit the new images.

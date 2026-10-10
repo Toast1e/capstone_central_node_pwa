@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   // No credentials are checked - every login succeeds.
   const login = async () => {
     setLoading(true);
-    const placeholderUser = { username: "guest" };
+    const placeholderUser = { centralNodeName: "guest" };
     setUser(placeholderUser);
     setLoading(false);
     return { success: true, user: placeholderUser };

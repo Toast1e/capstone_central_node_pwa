@@ -4,11 +4,16 @@
 import { useState } from 'react';
 
 // UI Libraries mostly Ant design libraries
-import { DatePicker, Flex, Typography, Button, Checkbox, Card, Segmented } from 'antd';
+import { DatePicker, Flex, Typography, Button, Checkbox, Card, Segmented, Alert } from 'antd';
 import {RiDownload2Line} from "@remixicon/react";
+
+// Our own helpers
+import { apiDownload, saveBlob } from "@/lib/api";
 
 //how dates are shown
 const dateFormat = 'YYYY/MM/DD';
+//how the backend wants them
+const apiDateFormat = 'YYYY-MM-DD';
 
 const leafNodeOptions = [
     "All Leaf Nodes",
@@ -20,12 +25,15 @@ const leafNodeOptions = [
     "Leaf Node 6"
 ];
 
-const readingOptions = [
-    "Temperature & Humidity",
-    "Leaf Wetness",
-    "Wind Speed",
-    "Node ID & Battery Logs"
-];
+// each option -> the backend reading fields it exports
+// (the backend always adds readingID, leafNodeID and the timestamps itself)
+const readingFields = {
+    "Temperature & Humidity": ["temperature", "humidity"],
+    "Leaf Wetness": ["leafWetness"],
+    "Wind Speed": ["windSpeed"],
+    "Node ID & Battery Logs": ["battery"],
+};
+const readingOptions = Object.keys(readingFields);
 
 const fileFormatOptions = [
     {label: "CSV (Excel)", value: "csv"},
@@ -45,6 +53,9 @@ export default function Export() {
     //csv or json
     const [fileFormat, setFileFormat] = useState("csv");
 
+    const [downloading, setDownloading] = useState(false);
+    const [error, setError] = useState(null);
+
     //All leaf nodes on its own or any mix of single nodes can be selected
     const toggleNode = (node) => {
         setSelectedNodes((previous) => {
@@ -61,9 +72,31 @@ export default function Export() {
         });
   }
 
-    // TODO send this to the backend and download the file it returns
-    function handleDownload() {
-        console.log({ dateRange, selectedNodes, readings, fileFormat });
+    // the backend needs both dates, and at least one reading
+    const canDownload = dateRange[0] && dateRange[1] && readings.length > 0;
+
+    // ask the backend for the file, then save what it returns
+    async function handleDownload() {
+        setDownloading(true);
+        setError(null);
+        try {
+            const params = {
+                from: dateRange[0].format(apiDateFormat),
+                to: dateRange[1].format(apiDateFormat),
+                fields: readings.flatMap((reading) => readingFields[reading]).join(","),
+                format: fileFormat,
+            };
+            // "Leaf Node 3" -> 3. Leaving ids out means every leaf node.
+            if (!selectedNodes.includes("All Leaf Nodes"))
+                params.ids = selectedNodes.map((node) => node.split(" ").pop()).join(",");
+
+            const { blob, filename } = await apiDownload("/api/export/readings", params);
+            saveBlob(blob, filename);
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setDownloading(false);
+        }
     }
 
   return (
@@ -134,7 +167,17 @@ export default function Export() {
           <Segmented options={fileFormatOptions} value={fileFormat} onChange={setFileFormat} block/>
         </Card>
 
-          <Button type="primary" size="large" block icon={<RiDownload2Line size={20} />} onClick={handleDownload}>
+          {error && <Alert type="error" showIcon title="Couldn't export" description={error} />}
+
+          <Button
+              type="primary"
+              size="large"
+              block
+              icon={<RiDownload2Line size={20} />}
+              onClick={handleDownload}
+              loading={downloading}
+              disabled={!canDownload}
+          >
             Download Log Package
           </Button>
 

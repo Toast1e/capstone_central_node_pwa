@@ -3,12 +3,16 @@
 import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert } from "antd";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSettings } from "@/contexts/SettingsContext";
 import "./Login.css";
 import { WifiOutlined, DisconnectOutlined } from '@ant-design/icons';
 
 export default function Login() {
   const { login, loading } = useAuth();
+  const { centralNodeName, centralNodeLoading, centralNodeError } = useSettings();
   const router = useRouter();
+  const centralNodeLabel = centralNodeName
+    ?? (centralNodeLoading ? "Loading central node…" : "Central node unavailable");
 
   // No credentials or validation yet - any submit logs you in.
   const onFinish = async () => {
@@ -16,18 +20,11 @@ export default function Login() {
     router.push("/home");
   };
 
-  const connectionStatus = {
-    connected: {
-      icon: <WifiOutlined />,
-      title: "Connected to local vineyard hotspot",
-      type: "success",
-    },
-    disconnected: {
-      icon: <DisconnectOutlined />,
-      title: "Not connected to local vineyard hotspot",
-      type: "error",
-    },
-  }
+  const connectionStatus = centralNodeLoading
+    ? { icon: <WifiOutlined />, title: "Checking central-node connection", type: "info" }
+    : centralNodeError
+      ? { icon: <DisconnectOutlined />, title: "Couldn't connect to the central node", type: "error" }
+      : { icon: <WifiOutlined />, title: "Connected to the central node", type: "success" };
 
   return (
 
@@ -49,12 +46,13 @@ export default function Login() {
               {/* Connection Status Alert */}
               <Form.Item>
                 <Flex vertical align="center" justify="center" gap="small">
-                  <Alert icon={connectionStatus.connected.icon} showIcon title={connectionStatus.connected.title} type={connectionStatus.connected.type} />
+                  <Alert icon={connectionStatus.icon} showIcon title={connectionStatus.title} type={connectionStatus.type} />
+                  {centralNodeError && <Alert showIcon title={centralNodeError} type="error" />}
                 </Flex>
               </Form.Item>
 
               {/* Which connection node */}
-              <Typography.Title level={4}>Central Node 1</Typography.Title>
+              <Typography.Title level={4}>{centralNodeLabel}</Typography.Title>
 
               {/* Password */}
               <Form.Item name="password">

@@ -9,7 +9,13 @@ import { RiArrowLeftLine, RiMapPin2Line } from "@remixicon/react";
 
 // Our own components and data
 import FarmMap from "./FarmMap";
-import { fetchLeafNodeDetails } from "./mockNodeDetails";
+import { fetchLeafNodeDetails } from "./leafNodeDetails";
+
+// "Block 2, row 7", just "Block 2" if there's no row, or "Not set"
+function locationText(location) {
+    if (!location) return "Not set";
+    return location.row != null ? `Block ${location.block}, row ${location.row}` : `Block ${location.block}`;
+}
 
 /**
  * modal pop-up with one leaf node's details and a button to a mock map of where it is.
@@ -34,7 +40,8 @@ export default function LeafNodeModal({ node, status, open, onClose }) {
         // if the pop-up closes before the answer arrives, ignore the answer
         let ignore = false;
 
-        fetchLeafNodeDetails(node.id)
+        // the backend wants the numeric ID, not the "LN-01" label
+        fetchLeafNodeDetails(node.leafNodeID)
             .then((result) => {
                 if (ignore) return;
                 setDetails(result);
@@ -47,12 +54,13 @@ export default function LeafNodeModal({ node, status, open, onClose }) {
         return () => {
             ignore = true;
         };
-    }, [open, node.id]);
+    }, [open, node.leafNodeID]);
 
     // the button dynamically changes between readings and map view
+    // (no map until the node has a location)
     const footer =
         view === "readings" ? (
-            <Button type="primary" icon={<RiMapPin2Line size={16} />} disabled={!details} onClick={() => setView("map")}>
+            <Button type="primary" icon={<RiMapPin2Line size={16} />} disabled={!details?.location} onClick={() => setView("map")}>
                 Show on farm map
             </Button>
         ) : (
@@ -88,19 +96,19 @@ export default function LeafNodeModal({ node, status, open, onClose }) {
                         <Alert type="warning" showIcon title={`No signal. Showing the last readings, from ${details.lastReading}.`} />
                     )}
 
-                    {/* this node's own sensor readings */}
+                    {/* this node's own sensor readings, "—" for a value it didn't measure */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>
                         <Card size="small">
-                            <Statistic title="Temperature" value={details.readings.temperature} suffix="°C" />
+                            <Statistic title="Temperature" value={details.readings.temperature ?? "—"} suffix={details.readings.temperature != null ? "°C" : ""} />
                         </Card>
                         <Card size="small">
-                            <Statistic title="Humidity" value={details.readings.humidity} suffix="%" />
+                            <Statistic title="Humidity" value={details.readings.humidity ?? "—"} suffix={details.readings.humidity != null ? "%" : ""} />
                         </Card>
                         <Card size="small">
-                            <Statistic title="Leaf wetness" value={details.readings.leafWetness} suffix="%" />
+                            <Statistic title="Leaf wetness" value={details.readings.leafWetness ?? "—"} suffix={details.readings.leafWetness != null ? "%" : ""} />
                         </Card>
                         <Card size="small">
-                            <Statistic title="Wind" value={details.readings.wind} suffix="m/s" />
+                            <Statistic title="Wind" value={details.readings.wind ?? "—"} suffix={details.readings.wind != null ? "m/s" : ""} />
                         </Card>
                     </div>
 
@@ -109,18 +117,14 @@ export default function LeafNodeModal({ node, status, open, onClose }) {
                         size="small"
                         column={1}
                         items={[
-                            { key: "battery", label: "Battery", children: `${node.battery}%` },
+                            { key: "battery", label: "Battery", children: node.battery != null ? `${node.battery}%` : "—" },
                             {
                                 key: "signal",
                                 label: "Signal",
                                 children: details.signal === null ? "None" : `${details.signal} dBm`,
                             },
                             { key: "lastReading", label: "Last reading", children: details.lastReading },
-                            {
-                                key: "location",
-                                label: "Location",
-                                children: `Block ${details.location.block}, row ${details.location.row}`,
-                            },
+                            { key: "location", label: "Location", children: locationText(details.location) },
                         ]}
                     />
                 </Flex>
@@ -131,7 +135,7 @@ export default function LeafNodeModal({ node, status, open, onClose }) {
                 <Flex vertical gap="small">
                     <FarmMap selectedId={node.id} />
                     <Typography.Text type="secondary">
-                        {node.id} is in block {details.location.block}, row {details.location.row}.
+                        {node.id} is in {locationText(details.location).toLowerCase()}.
                     </Typography.Text>
                 </Flex>
             )}

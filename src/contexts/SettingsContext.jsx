@@ -2,84 +2,145 @@
 
 // React and NextJS
 import {createContext, useContext, useEffect, useState} from "react";
+import { apiGet, apiPatch } from "@/lib/api";
 
 // ------ App settings ------
 // saved on the current device so they survive a refresh
-// TODO save username and readingInterval to backend
+// Central-node information is loaded from the backend; device preferences stay local.
 
 //name settings are saved under in browser's storage
 const STORAGE_KEY = "vitisense-settings";
 
 // default settings used until saved settings are loaded
 const DEFAULT_SETTINGS = {
-    username: "Central Node 1",
     themeMode: "system", // light or dark or system(i.e. match phone settings)
-    readingInterval: 15, // minutes between getting new readings
+    readingInterval: 5, // minutes between getting new readings
 };
 
+const REFRESH_MS = 30000;
 
 const SettingsContext = createContext(null);
 
 export function SettingsProvider({ children }) {
-    // Step 1: Remember settings
+    // Device preferences are local; central-node information comes from the API.
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+    const [centralNode, setCentralNode] = useState(null);
+    const [centralNodeLoading, setCentralNodeLoading] = useState(true);
+    const [centralNodeError, setCentralNodeError] = useState(null);
+    const [centralNodeSaving, setCentralNodeSaving] = useState(false);
 
     // true if device itself is in dark mode
     const [systemDark, setSystemDark] = useState(false);
 
-    // Step 2: load saved settings/preferences
+    // Load only device preferences from local storage.
     useEffect(() => {
         try {
-            // localStorage only holds text, so the settings are saved as JSON text and turned back into an object
             const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-            // default first... then save options on top
-            if (saved) setSettings({...DEFAULT_SETTINGS, ...saved});
+            if (saved) {
+                setSettings({
+                    themeMode: saved.themeMode ?? DEFAULT_SETTINGS.themeMode,
+                    readingInterval: saved.readingInterval ?? DEFAULT_SETTINGS.readingInterval,
+                });
+            }
         } catch {
             // storage blocked or the saved text is broken: keep the defaults
         }
     }, []);
 
-    // Step 3: use device's dark mode
+    // Load and refresh the central-node record shared by all pages.
     useEffect(() => {
-        // asks the browser "is the device in dark mode?"
-        const query = window.matchMedia("(prefers-color-scheme: dark)");
-        setSystemDark(query.matches); //current answer
+        let cancelled = false;
 
-        // will listen if device mode changes
+        async function loadCentralNode() {
+            try {
+                const node = await apiGet("/api/centralnode");
+                if (typeof node.name !== "string" || !node.name.trim()) {
+                    throw new Error("The central-node API returned no name.");
+                }
+                if (cancelled) return;
+                setCentralNode(node);
+                setCentralNodeError(null);
+            } catch (err) {
+                if (!cancelled) setCentralNodeError(err.message);
+            } finally {
+                if (!cancelled) setCentralNodeLoading(false);
+            }
+        }
+
+        loadCentralNode();
+        const timer = setInterval(loadCentralNode, REFRESH_MS);
+        return () => {
+            cancelled = true;
+            clearInterval(timer);
+        };
+    }, []);
+
+    // Follow the device's dark-mode setting.
+    useEffect(() => {
+        const query = window.matchMedia("(prefers-color-scheme: dark)");
+        setSystemDark(query.matches);
+
         const onChange = (event) => setSystemDark(event.matches);
         query.addEventListener("change", onChange);
 
         return () => query.removeEventListener("change", onChange);
     }, []);
 
-    //Step 4: change settings
+    // Update a device-only preference.
     function updateSetting(key, value) {
-        //copy every setting then replace
         const updated = {...settings, [key]: value};
-        setSettings(updated); // the app updates immediately
+        setSettings(updated);
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
         } catch {
-            // couldn't save (e.g. storage blocked): the change still applies until browser refresh
+            // The preference remains active until the page is refreshed.
         }
     }
 
-    // Step 5: Light or dark mode
+    async function updateCentralNodeName(name) {
+        setCentralNodeSaving(true);
+        setCentralNodeError(null);
+        try {
+            const updated = await apiPatch("/api/centralnode", { name });
+            setCentralNode((current) => ({
+                ...current,
+                ...updated,
+            }));
+            return updated;
+        } catch (err) {
+            setCentralNodeError(err.message);
+            throw err;
+        } finally {
+            setCentralNodeSaving(false);
+        }
+    }
+
     const isDark = settings.themeMode === "dark" || (settings.themeMode === "system" && systemDark);
 
-    // puts data-theme="dark" or "light" on the <html> tag, so globals.css can colour the page background to match
     useEffect(() => {
         document.documentElement.dataset.theme = isDark ? "dark" : "light";
     }, [isDark]);
 
     return (
-        <SettingsContext.Provider value={{ ...settings, isDark, updateSetting }}>
+        <SettingsContext.Provider value={{
+            ...settings,
+            centralNode,
+            centralNodeID: centralNode?.centralNodeID ?? null,
+            centralNodeName: centralNode?.name ?? null,
+            centralNodeDescription: centralNode?.description ?? null,
+            centralNodeLoading,
+            centralNodeError,
+            centralNodeSaving,
+            isDark,
+            updateSetting,
+            updateCentralNodeName,
+        }}>
             {children}
         </SettingsContext.Provider>
     );
 }
 
-// use this in any component to read or change the settings example const { username, isDark, updateSetting } = useSettings();
+// Use this to read shared central-node data or device preferences.
 export function useSettings() {
     return useContext(SettingsContext);
 }
