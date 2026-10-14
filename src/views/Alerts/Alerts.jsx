@@ -8,19 +8,50 @@ import { Typography, Flex, Tabs, Collapse, Tag, Button, Empty, theme } from "ant
 
 // ------ Placeholder data ------
 // TODO replace with data from the backend
+// shaped like a row of the database's alert table, so swapping in real data is easy. raisedAt and resolvedAt are unix seconds (how the Pi stores time)...leafNodes comes from the leafnode_alert table: one alert can cover several leaf nodes
+// (sentAt and centralNodeID are in the table too, but this page doesn't use them)
+
 const alertDetails = [
   {
-    alertID: 1, nodeName: "Node 1", mildewType: "Downy", receivedAt: "12:00",
-    isAcknowledged: false, alertSeverity: 0, message: "yay",
+    alertID: 1,
+    alertSeverity: 2,
+    mildewType: "downy",
+    leafNodes: ["LN-02"],
+    raisedAt: 1791949200, // 14 Oct 05:40
+    isAcknowledged: false,
+    resolvedAt: null,
+    alertMessage: "Standard message comes in step 3",
   },
   {
-    alertID: 2, nodeName: "Node 2", mildewType: "Powdery", receivedAt: "18:25",
-    isAcknowledged: false, alertSeverity: 2, message: "yay",
+    alertID: 2,
+    alertSeverity: 1,
+    mildewType: "powdery",
+    leafNodes: ["LN-04", "LN-05"],
+    raisedAt: 1791969300, // 14 Oct 11:15
+    isAcknowledged: false,
+    resolvedAt: null,
+    alertMessage: "Standard message comes in step 3",
   },
   {
-    alertID: 3, nodeName: "Node 3", mildewType: "Downy", receivedAt: "09:43",
-    isAcknowledged: true, alertSeverity: 1, message: "yay",
+    alertID: 3,
+    alertSeverity: 0,
+    mildewType: "powdery",
+    leafNodes: ["LN-01"],
+    raisedAt: 1791901200, // Oct 13 16:20
+    isAcknowledged: true,
+    resolvedAt: null,
+    alertMessage: "Standard message comes in step 3",
   },
+  {
+    alertID: 4,
+    alertSeverity: 1,
+    mildewType: "downy",
+    leafNodes: ["LN-03"],
+    raisedAt: 1791835800, //12 oct 22:10
+    isAcknowledged: true,
+    resolvedAt: 1791873000,
+    alertMessage: "Standard message comes in step 3",
+  }
 ];
 
 // tabs across the top of the page
@@ -32,11 +63,33 @@ const alertTabs = [
 
 // ------  Alert Severity ------
 // alertSeverity is 0, 1 or 2, so it can be used as the position in this array
+//TODO confirm nums with backend
 const severityStyles = [
-  { label: "LOW RISK", colour: "success", edge: "colorSuccess" },      // 0
-  { label: "MODERATE RISK", colour: "warning", edge: "colorWarning" }, // 1
-  { label: "HIGH RISK", colour: "error", edge: "colorError" },         // 2
+  { label: "LOW RISK", colour: "success", edge: "colorSuccess" }, // 0
+  { label: "MODERATE RISK", colour: "warning", edge: "colorWarning" },  // 1
+  { label: "HIGH RISK", colour: "error", edge: "colorError" },  // 2
 ];
+
+// mildewType as stored in the database -> what the page shows
+const mildewLabels = {
+  powdery: "Powdery mildew",
+  downy: "Downy mildew",
+};
+
+// unix seconds -> "14 Oct, 05:40"
+// JavaScript dates count in milliseconds, so seconds are multiplied by 1000.
+// The time zone is fixed so the server and the phone always show the same time
+function formatAlertTime(unixSeconds) {
+  return new Date(unixSeconds * 1000).toLocaleString("en-ZA", {
+    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    timeZone: "Africa/Johannesburg",
+  });
+}
+
+// resolvedAt stays empty (null) while the alert is still open
+function isResolved(alert) {
+  return Boolean(alert.resolvedAt);
+}
 
 export default function Alerts() {
   // which tab is showing
@@ -52,13 +105,15 @@ export default function Alerts() {
   const { token } = theme.useToken();
 
   // sorts from highest to lowest alert severity
-  const sortedAlerts = [...alerts].sort((a, b) => b.alertSeverity - a.alertSeverity);
+  // (|| only uses the time when the severity difference is 0)
+  const sortedAlerts = [...alerts].sort((a, b) => b.alertSeverity - a.alertSeverity || b.raisedAt - a.raisedAt);
 
   // only the alerts that belong on the current tab
   const visibleAlerts = sortedAlerts.filter((alert) => {
-    if (currentTab === "active") return !alert.isAcknowledged;
+    if (currentTab === "history") return isResolved(alert); //resolved alerts
+    if (isResolved(alert)) return false;  // ...only show in History
     if (currentTab === "acknowledged") return alert.isAcknowledged;
-    return true; // history shows every alert
+    return !alert.isAcknowledged; // active alerts
   });
 
   // marks alert as acknowledged, then moves it from Active to Acknowledged
@@ -107,11 +162,15 @@ export default function Alerts() {
                 items={[
                   {
                     key: alert.alertID,
-                    //header i.e. mildew type node and time
+                    //header i.e. mildew type, leaf nodes and time raised
                     label: (
                         <Flex vertical>
-                          <Typography.Text strong>{alert.mildewType} mildew</Typography.Text>
-                          <Typography.Text type="secondary">{alert.nodeName} - {alert.receivedAt}</Typography.Text>
+                          <Typography.Text strong>{mildewLabels[alert.mildewType]}</Typography.Text>
+                          <Typography.Text type="secondary">
+                            {alert.leafNodes.join(", ")} ·{" "}
+                            {/* nowrap: if the line is too long, the whole time moves down instead of splitting */}
+                            <span style={{ whiteSpace: "nowrap" }}>{formatAlertTime(alert.raisedAt)}</span>
+                          </Typography.Text>
                         </Flex>
                     ),
                     //risk tag on header
@@ -119,10 +178,17 @@ export default function Alerts() {
                     //tag body i.e message plus acknowledge button
                     children:(
                         <Flex vertical gap="middle">
-                          <Typography.Text>{alert.message}</Typography.Text>
+                          <Typography.Text>{alert.alertMessage}</Typography.Text>
 
-                          {/* only unacknowledged alerts can be acknowledged */}
-                          {!alert.isAcknowledged && (
+                          {/* when it ended, only for finished alerts */}
+                          {isResolved(alert) && (
+                              <Typography.Text type="secondary">
+                                Resolved {formatAlertTime(alert.resolvedAt)}
+                              </Typography.Text>
+                          )}
+
+                          {/* only open, unacknowledged alerts can be acknowledged */}
+                          {!alert.isAcknowledged && !isResolved(alert) && (
                               <Button type="primary" onClick={() => acknowledgeAlert(alert.alertID)}>
                                 Acknowledge
                               </Button>
