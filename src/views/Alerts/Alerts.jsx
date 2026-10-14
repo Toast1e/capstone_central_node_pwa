@@ -4,7 +4,7 @@
 import { useState } from 'react';
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Flex, Tabs, Collapse, Tag, Button, Descriptions, Empty, theme } from "antd";
+import { Typography, Flex, Tabs, Collapse, Tag, Button, Empty, theme } from "antd";
 
 // ------ Placeholder data ------
 // TODO replace with data from the backend
@@ -12,17 +12,14 @@ const alertDetails = [
   {
     alertID: 1, nodeName: "Node 1", mildewType: "Downy", receivedAt: "12:00",
     isAcknowledged: false, alertSeverity: 0, message: "yay",
-    readings: { humidity: "93%", temperature: "19.4°C", leafWetness: "60%", wind: "9.4 m/s" },
   },
   {
     alertID: 2, nodeName: "Node 2", mildewType: "Powdery", receivedAt: "18:25",
     isAcknowledged: false, alertSeverity: 2, message: "yay",
-    readings: { humidity: "88%", temperature: "24.1°C", leafWetness: "35%", wind: "3.2 m/s" },
   },
   {
     alertID: 3, nodeName: "Node 3", mildewType: "Downy", receivedAt: "09:43",
     isAcknowledged: true, alertSeverity: 1, message: "yay",
-    readings: { humidity: "91%", temperature: "17.8°C", leafWetness: "72%", wind: "5.0 m/s" },
   },
 ];
 
@@ -123,17 +120,6 @@ export default function Alerts() {
                     children:(
                         <Flex vertical gap="middle">
                           <Typography.Text>{alert.message}</Typography.Text>
-                          {/* sensor reading when alert was created*/}
-                          <Descriptions
-                            size="small"
-                            column={2}
-                            items={[
-                              {key: "humidity", label: "Humidity", children: alert.readings.humidity},
-                              {key: "temperature", label: "Temperature", children: alert.readings.temperature},
-                              {key: "leafWetness", label: "Leaf Wetness", children: alert.readings.leafWetness},
-                              {key: "wind", label: "Wind", children: alert.readings.wind},
-                            ]}
-                          />
 
                           {/* only unacknowledged alerts can be acknowledged */}
                           {!alert.isAcknowledged && (
