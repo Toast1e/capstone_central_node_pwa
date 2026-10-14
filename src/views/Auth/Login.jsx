@@ -12,8 +12,6 @@ export default function Login() {
   const router = useRouter();
   const [error, setError] = useState(null);
 
-  
-
   const onFinish = async ({password,remember}) => {
     setError(null);
     const result = await login(password, remember);

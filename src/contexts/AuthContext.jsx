@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState,useEffect } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import bcrypt from "bcryptjs";
 
 // RequireAuth redirects signed-out visitors to /login while authentication is enabled.
@@ -21,7 +21,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     try {
       const saved =
-        localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY);
+        JSON.parse(localStorage.getItem(STORAGE_KEY)).authenticated ?? JSON.parse(sessionStorage.getItem(STORAGE_KEY)).authenticated;
       if (saved === "true") setIsAuthenticated(true);
     } catch {
       // storage unavailable: stay signed out
@@ -29,37 +29,39 @@ export function AuthProvider({ children }) {
     setInitialized(true);
   }, []);
 
-  const login = async (password,remember = false) => {
+  const login = async (password, remember = false) => {
     setLoading(true);
 
-    try
-    {
+    try {
 
       const hash = process.env.NEXT_PUBLIC_PASSWORD_HASH;
       if (!hash) return { success: false, error: "Login is not configured." };  // check if password is actually in .env file
       if (!password) return { success: false, error: "Enter a password." };     // validate that user did enter a password
 
       // Compare the submitted password against the configured bcrypt hash.
-      const ok = await bcrypt.compare(password,hash);
-      if(!ok) return { success: false, error: "Incorrect password." };
-      
+      const ok = await bcrypt.compare(password, hash);
+      if (!ok) return { success: false, error: "Incorrect password." };
+
 
       setIsAuthenticated(true);
 
       // Keep user logged in after closing tab/browser 
       const store = remember ? localStorage : sessionStorage;
-      store.setItem(STORAGE_KEY, "true");
+      const storageConfig = {
+        authenticated: "true",
+        expirationDate: null
+      }
+      store.setItem(STORAGE_KEY, JSON.stringify(storageConfig));
 
       return { success: true };
 
-    } 
-    finally 
-    {
+    }
+    finally {
       setLoading(false);
     }
 
-    
-  
+
+
   };
 
   const logout = () => {
