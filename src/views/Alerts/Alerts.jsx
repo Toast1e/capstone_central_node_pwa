@@ -5,6 +5,10 @@ import { useState } from 'react';
 
 // UI Libraries mostly Ant design libraries
 import { Typography, Flex, Tabs, Collapse, Tag, Button, Empty, theme } from "antd";
+import {RiCheckLine} from "@remixicon/react";
+
+// Our own data
+import {buildAlert} from "./alertMessages";
 
 // ------ Placeholder data ------
 // TODO replace with data from the backend
@@ -14,43 +18,36 @@ import { Typography, Flex, Tabs, Collapse, Tag, Button, Empty, theme } from "ant
 const alertDetails = [
   {
     alertID: 1,
-    alertSeverity: 2,
-    mildewType: "downy",
+    // adds mildewType, alertSeverity and alertMessage, made the way the Pi will make them
+    ...buildAlert("downy", ["temperature", "humidity", "wind"]),
     leafNodes: ["LN-02"],
     raisedAt: 1791949200, // 14 Oct 05:40
     isAcknowledged: false,
     resolvedAt: null,
-    alertMessage: "Standard message comes in step 3",
   },
   {
     alertID: 2,
-    alertSeverity: 1,
-    mildewType: "powdery",
+    ...buildAlert("powdery", ["temperature", "humidity"]),
     leafNodes: ["LN-04", "LN-05"],
     raisedAt: 1791969300, // 14 Oct 11:15
     isAcknowledged: false,
     resolvedAt: null,
-    alertMessage: "Standard message comes in step 3",
   },
   {
     alertID: 3,
-    alertSeverity: 0,
-    mildewType: "powdery",
+    ...buildAlert("powdery", ["humidity"]),
     leafNodes: ["LN-01"],
     raisedAt: 1791901200, // Oct 13 16:20
     isAcknowledged: true,
     resolvedAt: null,
-    alertMessage: "Standard message comes in step 3",
   },
   {
     alertID: 4,
-    alertSeverity: 1,
-    mildewType: "downy",
+    ...buildAlert("downy", ["temperature", "humidity"]),
     leafNodes: ["LN-03"],
     raisedAt: 1791835800, //12 oct 22:10
     isAcknowledged: true,
     resolvedAt: 1791873000,
-    alertMessage: "Standard message comes in step 3",
   }
 ];
 
@@ -58,7 +55,7 @@ const alertDetails = [
 const alertTabs = [
   { key: "active", label: "Active" },
   { key: "acknowledged", label: "Acknowledged" },
-  { key: "history", label: "History" },
+  { key: "resolved", label: "Resolved" },
 ];
 
 // ------  Alert Severity ------
@@ -76,14 +73,21 @@ const mildewLabels = {
   downy: "Downy mildew",
 };
 
-// unix seconds -> "14 Oct, 05:40"
-// JavaScript dates count in milliseconds, so seconds are multiplied by 1000.
-// The time zone is fixed so the server and the phone always show the same time
+// ------ Times ------
+// Next.js draws the page twice: on the server, then again in the browser. toLocaleString can word
+// dates differently in each (Safari: "14 Oct at 05:40", the server: "14 Oct, 05:40"), and React errors
+// when the two don't match. Building the text by hand gives exactly the same result everywhere.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const SAST_OFFSET = 2 * 60 * 60; // South Africa is UTC+2 all year (no daylight saving), in seconds
+
+// unix seconds -> "14 Oct, 05:40" in South African time
 function formatAlertTime(unixSeconds) {
-  return new Date(unixSeconds * 1000).toLocaleString("en-ZA", {
-    day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-    timeZone: "Africa/Johannesburg",
-  });
+  // move the time 2 hours on, then read it as UTC: that gives the South African clock time.
+  // getUTC... ignores the device's own time zone, so the server and the phone get the same numbers
+  const time = new Date((unixSeconds + SAST_OFFSET) * 1000);
+  const hours = String(time.getUTCHours()).padStart(2, "0"); // 5 -> "05"
+  const minutes = String(time.getUTCMinutes()).padStart(2, "0");
+  return `${time.getUTCDate()} ${MONTHS[time.getUTCMonth()]}, ${hours}:${minutes}`;
 }
 
 // resolvedAt stays empty (null) while the alert is still open
@@ -110,8 +114,8 @@ export default function Alerts() {
 
   // only the alerts that belong on the current tab
   const visibleAlerts = sortedAlerts.filter((alert) => {
-    if (currentTab === "history") return isResolved(alert); //resolved alerts
-    if (isResolved(alert)) return false;  // ...only show in History
+    if (currentTab === "resolved") return isResolved(alert);  //ticked as resolved
+    if (isResolved(alert)) return false;  // ...only show in Resolved tab
     if (currentTab === "acknowledged") return alert.isAcknowledged;
     return !alert.isAcknowledged; // active alerts
   });
@@ -124,6 +128,17 @@ export default function Alerts() {
         )
     );
     // TODO send the acknowledgement to the backend so it's saved
+  }
+
+  // marks alert as resolved,  then moves it from Acknowledged to Resolved
+  function resolveAlert(alertID) {
+    const now = Math.floor(Date.now() / 1000); // unix seconds
+    setAlerts((current) =>
+        current.map((alert) =>
+            alert.alertID === alertID ? {...alert, resolvedAt: now} : alert
+        )
+    );
+    // TODO send to the backend so it's saved
   }
 
   return (
@@ -187,10 +202,18 @@ export default function Alerts() {
                               </Typography.Text>
                           )}
 
-                          {/* only open, unacknowledged alerts can be acknowledged */}
+                          {/* only open unacknowledged alerts can be acknowledged */}
                           {!alert.isAcknowledged && !isResolved(alert) && (
                               <Button type="primary" onClick={() => acknowledgeAlert(alert.alertID)}>
                                 Acknowledge
+                              </Button>
+                          )}
+
+
+                          {/* acknowledged but still open: can be ticked as resolved */}
+                          {alert.isAcknowledged && !isResolved(alert) && (
+                              <Button type="primary" icon={<RiCheckLine size={18} />} onClick={() => resolveAlert(alert.alertID)}>
+                                Mark as resolved
                               </Button>
                           )}
 
