@@ -1,11 +1,11 @@
 "use client";
 
 // React and NextJS
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 // UI Libraries mostly Ant design libraries
-import { Avatar, Button, Card, Flex, Input, Segmented, Select, Space, Typography, theme } from "antd";
+import { Avatar, Button, Card, Flex, Input, Segmented, Space, Typography, theme } from "antd";
 import { RiLogoutBoxRLine, RiMoonLine, RiRouterLine, RiSmartphoneLine, RiSunLine } from "@remixicon/react";
 
 // Our own contexts
@@ -20,18 +20,19 @@ const themeOptions = [
     { label: "Auto", value: "system", icon: <RiSmartphoneLine size={16} /> },
 ];
 
+//TODO reading interval: hidden for now
 // time interval options
-const intervalOptions = [5, 10, 15, 30, 60].map((minutes) => ({
-    label: `Every ${minutes} minutes`,
-    value: minutes,
-}));
+// const intervalOptions = [5, 10, 15, 30, 60].map((minutes) => ({
+//     label: `Every ${minutes} minutes`,
+//     value: minutes,
+// }));
 
 export default function Profile() {
     // theme colours from themeConfig.js
     const { token } = theme.useToken();
 
     // app settings shared with the rest of the app (SettingsContext.jsx)
-    const { username, themeMode, readingInterval, updateSetting } = useSettings();
+    const { username, themeMode, updateSetting } = useSettings();
 
     // logout() forgets who is signed in, then we send them to the login page ourselves
     const { logout } = useAuth();
@@ -44,18 +45,20 @@ export default function Profile() {
     }
 
     // ------ Rename the central node ------
-    // what's typed in the box, kept separate so typing doesn't rename anything until Saved
-    const [newName, setNewName] = useState(username);
-
-    // when the saved name loads (or is saved), show it in the box
-    useEffect(() => {
-        setNewName(username);
-    }, [username]);
+    // what's typed in the box. null means "nothing typed yet", and then the box shows the saved name, so when the saved name loads or changes, the box follows it without any extra code
+    const [newName, setNewName] = useState(null);
+    const showName = newName ?? username;
 
     // trim() removes spaces at the start and end, so "  " doesn't count as a name
-    const trimmedName = newName.trim();
+    const trimmedName = showName.trim();
     // only allow Save when there's a name and it's different from the current one
     const nameChanged = trimmedName !== "" && trimmedName !== username;
+
+    // save the new name, then go back to showing the saved name
+    function saveName() {
+        updateSetting("username", trimmedName);
+        setNewName(null);
+    }
 
     return (
         <Flex vertical gap="large">
@@ -102,14 +105,14 @@ export default function Profile() {
                         {/* Space.Compact joins the box and the button into one control */}
                         <Space.Compact block>
                             <Input
-                                value={newName}
+                                value={showName}
                                 onChange={(event) => setNewName(event.target.value)}
                                 // Enter on the keyboard saves too
-                                onPressEnter={() => nameChanged && updateSetting("username", trimmedName)}
+                                onPressEnter={() => nameChanged && saveName()}
                                 maxLength={30}
                                 aria-label="Central node name"
                             />
-                            <Button type="primary" disabled={!nameChanged} onClick={() => updateSetting("username", trimmedName)}>
+                            <Button type="primary" disabled={!nameChanged} onClick={saveName}>
                                 Save
                             </Button>
                         </Space.Compact>
@@ -118,7 +121,9 @@ export default function Profile() {
                         </Typography.Text>
                     </Flex>
 
-                    {/* how often leaf nodes send readings */}
+                    {/* TODO reading interval: hidden until the backend can change how often leaf nodes send readings.
+                        To bring it back, uncomment this block, intervalOptions at the top,
+                        readingInterval in useSettings() and Select in the antd import.
                     <Flex vertical gap="small">
                         <Typography.Text strong>Reading interval</Typography.Text>
                         <Select
@@ -131,6 +136,7 @@ export default function Profile() {
                             How often each leaf node's readings are updated.
                         </Typography.Text>
                     </Flex>
+                    */}
                 </Flex>
             </Card>
 
