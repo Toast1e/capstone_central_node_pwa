@@ -50,7 +50,7 @@ export function fetchLeafNodeDetails(leafNodeID) {
         setTimeout(() => {
             const details = NODE_DETAILS.find((node) => node.leafNodeID === leafNodeID);
             if (details) {
-                resolve({ details });
+                resolve(details);
             } else {
                 reject(new Error(`No details for leaf node ${leafNodeID}`));
             }
