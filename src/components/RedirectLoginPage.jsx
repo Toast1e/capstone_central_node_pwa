@@ -8,7 +8,7 @@ import { useAuth, AUTH_ENABLED } from "@/contexts/AuthContext";
 
 // Keeps signed-in users off the login page.
 export default function RedirectIfAuthenticated({ children }) {
-  const { isAuthenticated, initialized } = useAuth();
+    const { isAuthenticated, initialized } = useAuth();
 
   if (!initialized) return null;
 

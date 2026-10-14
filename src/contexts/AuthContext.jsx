@@ -6,10 +6,26 @@ import bcrypt from "bcryptjs";
 // RequireAuth redirects signed-out visitors to /login while authentication is enabled.
 export const AUTH_ENABLED = true;
 
+export function isSessionValid() {
+  try {
+    const raw =
+      localStorage.getItem(STORAGE_KEY) ?? sessionStorage.getItem(STORAGE_KEY);
+    const session = raw ? JSON.parse(raw) : null;
+    const notExpired =
+      session?.expirationDate == null || Date.now() < session.expirationDate;
+    return session?.authenticated === "true" && notExpired;
+  } catch (err) {
+    console.error("Session check failed", err);
+    return false;
+  }
+}
+
 const AuthContext = createContext();
 
 // Key used for browser storage
 const STORAGE_KEY = "isAuthenticated";
+
+const LOCALSTORAGE_SESSION_LENGTH_MS=7 * 24 * 60 * 60 * 1000;
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,13 +35,8 @@ export function AuthProvider({ children }) {
 
   // Check local storage to see if user is authenticated and restore login flag after refresh.
   useEffect(() => {
-    try {
-      const saved =
-        JSON.parse(localStorage.getItem(STORAGE_KEY)).authenticated ?? JSON.parse(sessionStorage.getItem(STORAGE_KEY)).authenticated;
-      if (saved === "true") setIsAuthenticated(true);
-    } catch {
-      // storage unavailable: stay signed out
-    }
+    if (isSessionValid()) setIsAuthenticated(true);
+    else logout();
     setInitialized(true);
   }, []);
 
@@ -49,7 +60,7 @@ export function AuthProvider({ children }) {
       const store = remember ? localStorage : sessionStorage;
       const storageConfig = {
         authenticated: "true",
-        expirationDate: null
+        expirationDate: remember ? Date.now() + LOCALSTORAGE_SESSION_LENGTH_MS : null,
       }
       store.setItem(STORAGE_KEY, JSON.stringify(storageConfig));
 
