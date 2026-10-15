@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { networkInterfaces } from "os";
+import { withSerwist } from "@serwist/turbopack";
 
 // In development Next.js only serves the page's JavaScript to "localhost".
 // Opening the Network URL (e.g. on a phone) would then show a page where no
@@ -20,4 +21,5 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: lanAddresses,
 };
 
-export default nextConfig;
+// export default nextConfig;
+export default withSerwist(nextConfig);
