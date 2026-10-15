@@ -6,6 +6,8 @@ import dynamic from "next/dynamic";
 // UI Libraries mostly Ant design libraries
 import { Card, Flex, Typography, theme } from "antd";
 
+import { useSettings } from "../../contexts/SettingsContext";
+
 // the chart draws on a canvas, which only exists in the browser, loaded client-side only and skipped during server rendering
 const Line = dynamic(
   () => import("@ant-design/charts").then((mod) => mod.Line),
@@ -151,6 +153,9 @@ export default function ThresholdChart({
   // theme colours from themeConfig.js
   const { token } = theme.useToken();
 
+  // light or dark mode, so the chart's text, axes and tooltip match
+  const { isDark } = useSettings();
+
   const seriesNames = Object.keys(colors);
 
   // `?? []` so a chart without dewpointData (undefined or null) cannot crash
@@ -172,6 +177,8 @@ export default function ThresholdChart({
           yField="value"
           colorField="series"
           height={320}
+          // the chart's own theme: "classicDark" has light text for dark backgrounds
+          theme={isDark ? "classicDark" : "classic"}
           // thin 2px lines
           style={{ lineWidth: 2 }}
           // false = a point with no value leaves a gap, the line is not drawn across it

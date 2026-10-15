@@ -4,9 +4,17 @@
 
 @import "tailwindcss";
 
+/* light mode: page background and text behind ant design components */
 :root {
   --background: #F5F2EE;   /* same as colorBgLayout in themeConfig.js */
   --foreground: #2B2530;   /* same as colorTextBase */
+  color-scheme: light; /* the browser's own components (scrollbars, form controls) stay light */
+}
+/* dark mode: used when SettingsContext puts data-theme="dark" on <html>.It's more specific than :root on its own, so these values win */
+:root[data-theme="dark"] {
+  --background: #17141C;
+  --foreground: #ECE6F2;
+  color-scheme: dark; /* the browser's own components go dark too */
 }
 
 @theme inline {
