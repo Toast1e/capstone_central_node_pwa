@@ -2,9 +2,11 @@
 
 // UI librariers ant designs
 import { ConfigProvider } from "antd";
+import { SerwistProvider } from "@serwist/turbopack/react";
 
 // our own contexts and theme
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ConnectionProvider } from "@/contexts/ConnectionContext";
 import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
 import { lightTheme, darkTheme } from "@/theme/themeConfig";
 
@@ -14,13 +16,18 @@ function ThemedApp({ children }) {
     return <ConfigProvider theme={isDark ? darkTheme : lightTheme}>{children}</ConfigProvider>;
 }
 
-// wraps the whole app, outside to inside: settings -> theme (needs the settings) -> login -> pages
+// wraps the whole app, outside to inside: service worker -> settings -> theme (needs the settings) -> connection -> login -> pages
+// reloadOnOnline is off so getting Wi-Fi back doesn't reload the page and throw away what the user was doing
 export default function Providers({ children }) {
     return (
-        <SettingsProvider>
-            <ThemedApp>
-                <AuthProvider>{children}</AuthProvider>
-            </ThemedApp>
-        </SettingsProvider>
+        <SerwistProvider swUrl="/sw.js" reloadOnOnline={false}>
+            <SettingsProvider>
+                <ThemedApp>
+                    <ConnectionProvider>
+                        <AuthProvider>{children}</AuthProvider>
+                    </ConnectionProvider>
+                </ThemedApp>
+            </SettingsProvider>
+        </SerwistProvider>
     );
 }
