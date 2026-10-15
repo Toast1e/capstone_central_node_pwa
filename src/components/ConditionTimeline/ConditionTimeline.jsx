@@ -5,13 +5,21 @@ import { Card, Flex, Tooltip, Typography, theme } from "antd";
 
 // Our own components
 //import { formatTick, formatTooltipTime } from "@/components/ThresholdGraph/ThresholdGraph";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // ------ Timeline colours ------
-// full colour = all 3 conditions met, light = 2 of 3 met
-// checked to be colour-blind safe and visible on the stone-coloured track
+// strong colour = all 3 conditions met, faded = 2 of 3 met
+// checked to be colour-blind safe and visible on the track in both modes
 const diseaseColours = {
-  powdery: { all: "#c2456f", partial: "#e8a0bd" },
-  downy: { all: "#2a78d6", partial: "#86b6ef" },
+  light: {
+    powdery: { all: "#c2456f", partial: "#e8a0bd" },
+    downy: { all: "#2a78d6", partial: "#86b6ef" },
+  },
+  // on a dark background "faded" means darker, so 2 of 3 still looks weaker than all 3
+  dark: {
+    powdery: { all: "#d55181", partial: "#7d3553" },
+    downy: { all: "#3987e5", partial: "#1c5cab" },
+  },
 };
 
 // width of the disease name column, so the rows and time labels line up
@@ -232,6 +240,10 @@ export default function ConditionTimeline({
   // theme colours from themeConfig.js
   const { token } = theme.useToken();
 
+  // pick the colour set for light or dark mode
+  const { isDark } = useSettings();
+  const colourSet = isDark ? diseaseColours.dark : diseaseColours.light;
+
   const points = prepareReadings(readings);
 
   if (points.length === 0) {
@@ -257,7 +269,7 @@ export default function ConditionTimeline({
     return {
       disease,
       label: limits.label,
-      colours: diseaseColours[disease],
+      colours: colourSet[disease],
       conditionCount: active.length,
       blocks: findBlocks(
         points,

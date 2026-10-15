@@ -48,6 +48,9 @@ export default function Alerts() {
   // the alert list, in state so the page updates when an alert is acknowledged
   const [alerts, setAlerts] = useState(alertDetails);
 
+  // which alert is expanded, only one at a time (null when none are)
+  const [openAlertId, setOpenAlertId] = useState(null);
+
   // theme colours from themeConfig.js, used for the severity edges
   const { token } = theme.useToken();
 
@@ -73,19 +76,18 @@ export default function Alerts() {
 
   return (
     <Flex vertical gap="large">
-      <Flex vertical gap="middle">
+      <Flex vertical gap="small">
         {/* Page title */}
-        <Flex vertical>
-          <Typography.Title level={2}>Mildew Alerts</Typography.Title>
-        </Flex>
-      </Flex>
-
+        <Typography.Title level={2} style={{margin:0}}>Mildew Alerts</Typography.Title>
       {/* alert status tabs */}
       <Tabs
           activeKey={currentTab}
           onChange={setCurrentTab}
           items={alertTabs}
+          // remove the tab bar's built-in bottom margin; the page gap handles spacing
+          tabBarStyle={{ marginBottom: 0 }}
       />
+      </Flex>
 
       {/* alerts list  */}
       <Flex vertical gap="small">
@@ -99,7 +101,11 @@ export default function Alerts() {
               <Collapse
                 key={alert.alertID}
                 expandIconPlacement="end"
-                //colour strip on left like with nodes page
+                  // open only if this is the alert that was tapped last
+                activeKey={openAlertId === alert.alertID ? [alert.alertID] : []}
+                  // tapping a closed alert opens it (and closes the others), tapping the open one closes it
+                  onChange={(openKeys)=>setOpenAlertId(openKeys.length>0? alert.alertID : null)}
+                  //colour strip on left like with nodes page
                 style={{borderLeft: `4px solid ${token[severity.edge]}`}}
                 items={[
                   {

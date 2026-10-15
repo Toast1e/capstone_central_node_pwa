@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { MILDEW_THRESHOLDS as mildewThresholds } from "./mildewThresholds";
 import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
 import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
+import { useSettings } from "../../contexts/SettingsContext";
 
 // UI Libraries mostly Ant design libraries
 import {
@@ -106,6 +107,9 @@ export default function Home() {
   // theme colours from themeConfig passed to the chart
   const { token } = theme.useToken();
 
+  // the central node's name from the Profile page settings
+  const { username } = useSettings();
+
   //which leaf node currently shown from 1 to totalNodes
   const [node, setNode] = useState(1);
 
@@ -194,16 +198,16 @@ export default function Home() {
 
   return (
     <Flex vertical gap="large">
-      <Flex vertical gap="middle">
-        {/* Page title */}
-        <Flex vertical>
-          <Typography.Title level={2}>Central Node 1 Overview</Typography.Title>
-          {/* number nodes being monitored */}
-          <Typography.Text type="secondary">
-            {" "}
-            {totalNodes} Leaf Nodes monitored
-          </Typography.Text>
-        </Flex>
+      {/* Page title */}
+      <Flex vertical gap={4}>
+        <Typography.Title level={2} style={{ margin: 0 }}>
+          {username} Overview
+        </Typography.Title>
+        {/* number nodes being monitored */}
+        <Typography.Text type="secondary">
+          {" "}
+          {totalNodes} Leaf Nodes monitored
+        </Typography.Text>
       </Flex>
 
       {/* alerts banner */}
