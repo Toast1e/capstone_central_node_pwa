@@ -2,13 +2,13 @@
 
 import { Layout, Flex, Button, Typography, Switch } from "antd";
 import { useRouter, usePathname } from "next/navigation";
-import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine, RiFontSize2 } from "@remixicon/react";
+import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
-import { Header } from "antd/es/layout/layout";
+import {useSettings} from "../contexts/SettingsContext";
 import { useConnection } from "@/contexts/ConnectionContext";
 
 const { Text } = Typography;
-const { Content, Footer } = Layout;
+const { Header, Content, Footer } = Layout;
 
 const STATUS_DISPLAY = {
   connecting: { label: "Connecting…", type: "secondary" },
@@ -28,7 +28,8 @@ const NAV_ITEMS = [
 export default function MainLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const centralNode = "Central node 1";
+  // the central node's name from the Profile page settings
+  const { username: centralNode } = useSettings();
   const { status, isOnline } = useConnection();
   const display = STATUS_DISPLAY[status];
 
