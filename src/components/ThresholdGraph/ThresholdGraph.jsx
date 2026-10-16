@@ -205,6 +205,7 @@ export default function ThresholdChart({
               gridLineDash: [0, 0],
               gridStroke: token.colorBorderSecondary,
               gridStrokeOpacity: 1,
+              labelFormatter: (t) => t + (seriesNames[0] === "Humidity" ? "%" : "℃"),
             },
           }}
           // legend only when there's more than one line; the title names a single line
