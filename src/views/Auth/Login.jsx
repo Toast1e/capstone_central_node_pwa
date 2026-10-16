@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert, Switch } from "antd";
+import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert } from "antd";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
@@ -10,7 +10,7 @@ import { useConnection } from "@/contexts/ConnectionContext";
 export default function Login() {
   const { login, loading } = useAuth();
   const router = useRouter();
-  const { status, isOnline } = useConnection();
+  const { status } = useConnection();
 
   // No credentials or validation yet - any submit logs you in.
   const onFinish = async () => {

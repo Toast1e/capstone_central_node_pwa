@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout, Flex, Button, Typography, Switch } from "antd";
+import { Layout, Flex, Button, Typography } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
@@ -30,13 +30,13 @@ export default function MainLayout({ children }) {
   const pathname = usePathname();
   // the central node's name from the Profile page settings
   const { username: centralNode } = useSettings();
-  const { status, isOnline } = useConnection();
+  const { status } = useConnection();
   const display = STATUS_DISPLAY[status];
 
   return (
     <Layout className="layout">
       {/* Top app bar */}
-      <Header className="top-app-bar" color={isOnline ? "primary" : "default"}>
+      <Header className="top-app-bar">
         <Flex align="center" className="top-app-bar-items" justify="space-between">
           <Flex gap={"5pt"}>
             <Text strong className="textSize">

@@ -21,5 +21,4 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: lanAddresses,
 };
 
-// export default nextConfig;
 export default withSerwist(nextConfig);
