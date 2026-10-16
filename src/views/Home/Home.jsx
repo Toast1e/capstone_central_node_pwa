@@ -25,9 +25,6 @@ import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 
 import Papa from "papaparse";
 
-// ------ Placeholder data ------
-// TODO make page elements dynamic based on backend later
-
 const totalNodes = 6;
 
 // "sensor readings" one card per reading type
@@ -332,22 +329,6 @@ export default function Home() {
           // CHANGE 4: the chart needs this to know whether to show 24h or 7 days
           timeRange={timeRange}
         />
-
-        {/* wind chart
-        <ThresholdGraph
-          title="Wind speed"
-          data={windData}
-          colors={{ Wind: token.colorPrimary }}
-          unit=" m/s"
-          yDomain={[0, 12]}
-          riskZone={{
-            from: thresholds.wind.min,
-            to: 12,
-            label: `${thresholds.label} risk: above ${thresholds.wind.min} m/s`,
-          }}
-          timeRange={timeRange}
-        />
-        */}
       </Flex>
     </Flex>
   );
