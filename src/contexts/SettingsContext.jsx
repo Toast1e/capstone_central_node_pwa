@@ -2,10 +2,11 @@
 
 // React and NextJS
 import {createContext, useContext, useEffect, useState} from "react";
+import { getCentralNodeName } from "../../lib/centralNode";
 
 // ------ App settings ------
 // saved on the current device so they survive a refresh
-// TODO save username and readingInterval to backend
+// TODO save readingInterval to backend (username is loaded from the backend and saved by the Profile page)
 
 //name settings are saved under in browser's storage
 const STORAGE_KEY = "vitisense-settings";
@@ -27,7 +28,7 @@ export function SettingsProvider({ children }) {
     // true if device itself is in dark mode
     const [systemDark, setSystemDark] = useState(false);
 
-    // Step 2: load saved settings/preferences
+    // Step 2a: load saved settings/preferences
     useEffect(() => {
         try {
             // localStorage only holds text, so the settings are saved as JSON text and turned back into an object
@@ -37,6 +38,15 @@ export function SettingsProvider({ children }) {
         } catch {
             // storage blocked or the saved text is broken: keep the defaults
         }
+    }, []);
+
+    // Step 2b: Get the central node name from backend
+    useEffect(() => {
+        getCentralNodeName()
+            .then((name) => updateSetting("username", name))
+            .catch(() => {
+                // offline or API down: keep the last saved name (or the default)
+            });
     }, []);
 
     // Step 3: use device's dark mode
@@ -54,14 +64,17 @@ export function SettingsProvider({ children }) {
 
     //Step 4: change settings
     function updateSetting(key, value) {
-        //copy every setting then replace
-        const updated = {...settings, [key]: value};
-        setSettings(updated); // the app updates immediately
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-        } catch {
-            // couldn't save (e.g. storage blocked): the change still applies until browser refresh
-        }
+        // the function form of setSettings always builds on the latest settings,
+        // so a slow API answer can't overwrite a theme change made in the meantime
+        setSettings((prev) => {
+            const updated = {...prev, [key]: value};
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+            } catch {
+                // couldn't save (e.g. storage blocked): the change still applies until browser refresh
+            }
+            return updated;
+        });
     }
 
     // Step 5: Light or dark mode
