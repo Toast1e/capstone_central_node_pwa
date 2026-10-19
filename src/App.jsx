@@ -14,9 +14,9 @@ export default function App() {
         },
       }}
     >
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
     </ConfigProvider>
   );
 }
