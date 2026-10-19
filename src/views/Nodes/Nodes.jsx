@@ -1,38 +1,16 @@
 "use client";
 
 // React and NextJS
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // UI Libraries--Ant design libraries
-import {Flex, Tag, Typography, Card, theme} from "antd";
+import {Alert, Flex, Spin, Tag, Typography, Card, theme} from "antd";
 import { RiCpuLine, RiArrowRightSLine } from "@remixicon/react";
 
-// Our own components
+// Our own components and API calls
 import LeafNodeModal from "./LeafNodeModal";
-
-// ------ Placeholder data ------
-// TODO replace with data from the backend
-const centralNode = {
-    name: "Raspberry Pi 4B (Gateway)",
-    uptime: "14 days",
-    storageFree: "68%",
-    hotspot: "Active",
-    phonesConnected: 3,
-    database: "Syncing OK",
-};
-
-// shaped like rows of the database's leafnode table.
-// leafNodeID never changes; leafNodeName can be edited, so the page finds nodes by ID
-// TODO connection and lastSeen still need matching to leafNodeStatus and lastConnectedAt
-// TODO blockID once the block table exists
-const initialLeafNodes = [
-    { leafNodeID: 1, leafNodeName: "LN-01", leafNodeLatitude: -33.934120, leafNodeLongitude: 18.861230, leafNodeBattery: 88, connection: "GOOD", lastSeen: "14:56" },
-    { leafNodeID: 2, leafNodeName: "LN-02", leafNodeLatitude: -33.934510, leafNodeLongitude: 18.862040, leafNodeBattery: 91, connection: "GOOD", lastSeen: "14:56" },
-    { leafNodeID: 3, leafNodeName: "LN-03", leafNodeLatitude: -33.933870, leafNodeLongitude: 18.863150, leafNodeBattery: 76, connection: "LOW", lastSeen: null },
-    { leafNodeID: 4, leafNodeName: "LN-04", leafNodeLatitude: -33.934290, leafNodeLongitude: 18.863980, leafNodeBattery: 83, connection: "GOOD", lastSeen: "14:56" },
-    { leafNodeID: 5, leafNodeName: "LN-05", leafNodeLatitude: null, leafNodeLongitude: null, leafNodeBattery: 34, connection: "NONE", lastSeen: null },
-    { leafNodeID: 6, leafNodeName: "LN-06", leafNodeLatitude: null, leafNodeLongitude: null, leafNodeBattery: 94, connection: "GOOD", lastSeen: "14:56" },
-];
+import { getCentralNode } from "../../../lib/centralNode";
+import { getLeafNodeCards } from "../../../lib/nodes";
 
 // ------ Connection status display ------
 // tag label and colour for each connection level
@@ -42,10 +20,55 @@ const connectionStatus = {
     NONE: { label: "NO SIGNAL", colour: "error", edge: "colorError" },
 };
 
+// unix seconds -> "14:56" on this device, or null if the node has never been heard
+function formatTime(unixSeconds) {
+    if (!unixSeconds) return null;
+    return new Date(unixSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// seconds -> "14 days", "5 hours" or "12 min"
+function formatUptime(seconds) {
+    if (seconds == null) return "Unknown";
+    const days = Math.floor(seconds / 86400);
+    if (days >= 1) return `${days} ${days === 1 ? "day" : "days"}`;
+    const hours = Math.floor(seconds / 3600);
+    if (hours >= 1) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+    return `${Math.floor(seconds / 60)} min`;
+}
+
 export default function Nodes() {
 
-    // the leaf nodes, in state so an edit shows straight away
-    const [leafNodes, setLeafNodes] = useState(initialLeafNodes);
+    // the central node and the leaf nodes, loaded from the backend
+    const [centralNode, setCentralNode] = useState(null);
+    // in state so an edit shows straight away
+    const [leafNodes, setLeafNodes] = useState([]);
+
+    // true if the backend couldn't be reached
+    const [failed, setFailed] = useState(false);
+
+    // still waiting for the backend
+    const loading = centralNode === null && !failed;
+
+    // load both when the page opens
+    useEffect(() => {
+        // if the page closes before the answer arrives, ignore the answer
+        let ignore = false;
+
+        Promise.all([getCentralNode(), getLeafNodeCards()])
+            .then(([central, cards]) => {
+                if (ignore) return;
+                setCentralNode(central);
+                // lastSeen is the time text the cards show
+                setLeafNodes(cards.map((node) => ({ ...node, lastSeen: formatTime(node.lastConnectedAt) })));
+            })
+            .catch(() => {
+                if (!ignore) setFailed(true);
+            });
+
+        return () => {
+            ignore = true;
+        };
+    }, []);
 
     // number of leaf nodes with active connection, show in header tag
     const nodesActivelyConnected = leafNodes.filter((node) => node.connection !== "NONE").length;
@@ -72,6 +95,18 @@ export default function Nodes() {
         // TODO send the changes to the backend so they're saved
     }
 
+    if (failed) {
+        return <Alert type="error" showIcon title="Couldn't load the nodes. Check your connection and try again." />;
+    }
+
+    if (loading) {
+        return (
+            <Flex justify="center">
+                <Spin />
+            </Flex>
+        );
+    }
+
   return (
       <Flex vertical gap="large">
           <Flex vertical gap="middle">
@@ -94,18 +129,9 @@ export default function Nodes() {
                       <Typography.Title level={4} style={{margin:0}}>{centralNode.name}</Typography.Title>
                       {/* central node basic info */}
                       <Typography.Text type="secondary">
-                          Uptime: {centralNode.uptime}  Storage: {centralNode.storageFree} free
+                          Description: {centralNode.description} 
                       </Typography.Text>
 
-                      <ul style={{margin: "8px 0 0", paddingLeft: 20 }}>
-                          <li>
-                              WiFi Hotspot: <Typography.Text strong>{centralNode.hotspot}</Typography.Text>{" "}
-                              ({centralNode.phonesConnected} phones connected)
-                          </li>
-                          <li>
-                              Database: <Typography.Text strong>{centralNode.database}</Typography.Text>
-                          </li>
-                      </ul>
                   </Flex>
               </Flex>
           </Card>

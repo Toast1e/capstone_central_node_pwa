@@ -7,6 +7,9 @@ import { useState } from 'react';
 import { DatePicker, Flex, Typography, Button, Checkbox, Card, Segmented } from 'antd';
 import {RiDownload2Line} from "@remixicon/react";
 
+// API call (lib/export.js)
+import { downloadReadings } from "../../../lib/export";
+
 //how dates are shown
 const dateFormat = 'YYYY/MM/DD';
 
@@ -27,6 +30,15 @@ const readingOptions = [
     "Node ID & Battery Logs"
 ];
 
+// which API fields each reading option stands for
+// (the node ID is always in the file, so "Node ID & Battery Logs" only adds battery)
+const readingFields = {
+    "Temperature & Humidity": ["temperature", "humidity"],
+    "Leaf Wetness": ["leafWetness"],
+    "Wind Speed": ["windSpeed"],
+    "Node ID & Battery Logs": ["battery"],
+};
+
 const fileFormatOptions = [
     {label: "CSV (Excel)", value: "csv"},
     {label: "JSON (Raw)", value: "json"}
@@ -45,6 +57,10 @@ export default function Export() {
     //csv or json
     const [fileFormat, setFileFormat] = useState("csv");
 
+    // true while the file is being fetched, error is the message shown if it fails
+    const [downloading, setDownloading] = useState(false);
+    const [error, setError] = useState(null);
+
     //All leaf nodes on its own or any mix of single nodes can be selected
     const toggleNode = (node) => {
         setSelectedNodes((previous) => {
@@ -61,9 +77,28 @@ export default function Export() {
         });
   }
 
-    // TODO send this to the backend and download the file it returns
-    function handleDownload() {
-        console.log({ dateRange, selectedNodes, readings, fileFormat });
+    // the API needs both dates and at least one reading
+    const canDownload = dateRange[0] && dateRange[1] && readings.length > 0 && !downloading;
+
+    async function handleDownload() {
+        setDownloading(true);
+        setError(null);
+        try {
+            await downloadReadings({
+                from: dateRange[0].format("YYYY-MM-DD"),
+                to: dateRange[1].format("YYYY-MM-DD"),
+                // "All Leaf Nodes" -> no ids, "Leaf Node 3" -> 3
+                ids: selectedNodes.includes("All Leaf Nodes")
+                    ? undefined
+                    : selectedNodes.map((node) => Number(node.split(" ").pop())),
+                fields: readings.flatMap((reading) => readingFields[reading]),
+                format: fileFormat,
+            });
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setDownloading(false);
+        }
     }
 
   return (
@@ -134,9 +169,18 @@ export default function Export() {
           <Segmented options={fileFormatOptions} value={fileFormat} onChange={setFileFormat} block/>
         </Card>
 
-          <Button type="primary" size="large" block icon={<RiDownload2Line size={20} />} onClick={handleDownload}>
+          <Button
+              type="primary"
+              size="large"
+              block
+              icon={<RiDownload2Line size={20} />}
+              disabled={!canDownload}
+              loading={downloading}
+              onClick={handleDownload}
+          >
             Download Log Package
           </Button>
+          {error && <Typography.Text type="danger">{error}</Typography.Text>}
 
       </Flex>
   );
