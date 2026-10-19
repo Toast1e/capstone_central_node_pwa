@@ -35,6 +35,55 @@ const unmeasuredMetrics = [
 
 const severityLabels = { 2: "high", 1: "moderate", 0: "low" };
 
+// ------ Chart options ------
+const diseaseOptions = [
+  { label: "Powdery", value: "powdery" },
+  { label: "Downy", value: "downy" },
+];
+
+const timeRangeOptions = [
+  { label: "24h", value: "24h" },
+  { label: "7 days", value: "7d" },
+];
+
+// orange for temperature
+const temperatureColour = "#eb6834";
+
+// "Updated 14:30", or with the date when the reading isn't from today
+function updatedNote(sec) {
+  const d = new Date(sec * 1000);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === new Date().toDateString()) return `Updated ${time}`;
+  const day = d.toLocaleDateString([], { day: "numeric", month: "short" });
+  return `Updated ${day} ${time}`;
+}
+
+// unix seconds -> "YYYY-MM-DD HH:MM:SS" (same text format your CSVs used)
+function toLocalText(sec) {
+  const d = new Date(sec * 1000);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// timestamp -> milliseconds, used for sorting.
+function toTime(ts) {
+  return new Date(String(ts).replace(" ", "T")).getTime();
+}
+
+// Magnus formula; returns null when the inputs are not usable
+function calculateDewpoint(humidity, temperature) {
+  if (
+    typeof humidity !== "number" ||
+    typeof temperature !== "number" ||
+    humidity <= 0
+  ) {
+    return null;
+  }
+  const gamma =
+    Math.log(humidity / 100) + (17.62 * temperature) / (243.12 + temperature);
+  return Math.round(((243.12 * gamma) / (17.62 - gamma)) * 10) / 10; // 1 decimal place
+}
+
 async function loadHistory(hours, leafNodeID) {
   const { reading } = await apiFetch(
     `/api/history?hours=${hours}&leafNodeID=${leafNodeID}`,
@@ -68,55 +117,6 @@ function worstSeverityByNode(alerts) {
   }
   return worst;
 }
-
-// "Updated 14:30", or with the date when the reading isn't from today
-function updatedNote(sec) {
-  const d = new Date(sec * 1000);
-  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  if (d.toDateString() === new Date().toDateString()) return `Updated ${time}`;
-  const day = d.toLocaleDateString([], { day: "numeric", month: "short" });
-  return `Updated ${day} ${time}`;
-}
-
-// ------ Chart options ------
-const diseaseOptions = [
-  { label: "Powdery", value: "powdery" },
-  { label: "Downy", value: "downy" },
-];
-
-const timeRangeOptions = [
-  { label: "24h", value: "24h" },
-  { label: "7 days", value: "7d" },
-];
-
-// unix seconds -> "YYYY-MM-DD HH:MM:SS" (same text format your CSVs used)
-function toLocalText(sec) {
-  const d = new Date(sec * 1000);
-  const p = (n) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-
-// Magnus formula; returns null when the inputs are not usable
-function calculateDewpoint(humidity, temperature) {
-  if (
-    typeof humidity !== "number" ||
-    typeof temperature !== "number" ||
-    humidity <= 0
-  ) {
-    return null;
-  }
-  const gamma =
-    Math.log(humidity / 100) + (17.62 * temperature) / (243.12 + temperature);
-  return Math.round(((243.12 * gamma) / (17.62 - gamma)) * 10) / 10; // 1 decimal place
-}
-
-// timestamp -> milliseconds, used for sorting.
-function toTime(ts) {
-  return new Date(String(ts).replace(" ", "T")).getTime();
-}
-
-// orange for temperature
-const temperatureColour = "#eb6834";
 
 export default function Home() {
   // theme colours from themeConfig passed to the chart

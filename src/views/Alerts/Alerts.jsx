@@ -1,83 +1,63 @@
 "use client";
 
 // React and NextJS
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from "react";
 
 // UI Libraries mostly Ant design libraries
-import { Typography, Flex, Tabs, Collapse, Tag, Button, Empty, theme } from "antd";
-import {RiCheckLine} from "@remixicon/react";
+import {
+  Typography,
+  Flex,
+  Tabs,
+  Collapse,
+  Tag,
+  Button,
+  Empty,
+  Alert,
+  theme,
+} from "antd";
 
-// Our own data
-import {buildAlert} from "./alertMessages";
+// API calls for alerts (lib/alerts.js)
+import {
+  getAlerts,
+  getAcknowledgedAlerts,
+  acknowledgeAlert,
+} from "../../../lib/alerts";
 
-// ------ Placeholder data ------
-// TODO replace with data from the backend
-// shaped like a row of the database's alert table, so swapping in real data is easy. raisedAt and resolvedAt are unix seconds (how the Pi stores time)...leafNodes comes from the leafnode_alert table: one alert can cover several leaf nodes
-// (sentAt and centralNodeID are in the table too, but this page doesn't use them)
-
-const alertDetails = [
-  {
-    alertID: 1,
-    // adds mildewType, alertSeverity and alertMessage, made the way the Pi will make them
-    ...buildAlert("downy", ["temperature", "humidity", "wind"]),
-    leafNodes: ["LN-02"],
-    raisedAt: 1791949200, // 14 Oct 05:40
-    isAcknowledged: false,
-    resolvedAt: null,
-  },
-  {
-    alertID: 2,
-    ...buildAlert("powdery", ["temperature", "humidity"]),
-    leafNodes: ["LN-04", "LN-05"],
-    raisedAt: 1791969300, // 14 Oct 11:15
-    isAcknowledged: false,
-    resolvedAt: null,
-  },
-  {
-    alertID: 3,
-    ...buildAlert("powdery", ["humidity"]),
-    leafNodes: ["LN-01"],
-    raisedAt: 1791901200, // Oct 13 16:20
-    isAcknowledged: true,
-    resolvedAt: null,
-  },
-  {
-    alertID: 4,
-    ...buildAlert("downy", ["temperature", "humidity"]),
-    leafNodes: ["LN-03"],
-    raisedAt: 1791835800, //12 oct 22:10
-    isAcknowledged: true,
-    resolvedAt: 1791873000,
-  }
-];
-
-// tabs across the top of the page
+// ------ Tabs ------
+// tabs across the top of the page. The backend sets resolvedAt when an alert is
+// acknowledged, so there is no separate "Resolved" state to show yet
 const alertTabs = [
   { key: "active", label: "Active" },
   { key: "acknowledged", label: "Acknowledged" },
-  { key: "resolved", label: "Resolved" },
 ];
 
-// ------  Alert Severity ------
-// alertSeverity is 0, 1 or 2, so it can be used as the position in this array
-//TODO confirm nums with backend
+// ------ Alert severity ------
+// alertSeverity from the API is 0, 1 or 2, so it can be used as the position in this array
+// (matches the backend's calculate_risk: 0 = low, 1 = moderate, 2 = high)
 const severityStyles = [
   { label: "LOW RISK", colour: "success", edge: "colorSuccess" }, // 0
-  { label: "MODERATE RISK", colour: "warning", edge: "colorWarning" },  // 1
-  { label: "HIGH RISK", colour: "error", edge: "colorError" },  // 2
+  { label: "MODERATE RISK", colour: "warning", edge: "colorWarning" }, // 1
+  { label: "HIGH RISK", colour: "error", edge: "colorError" }, // 2
 ];
-
-// mildewType as stored in the database -> what the page shows
-const mildewLabels = {
-  powdery: "Powdery mildew",
-  downy: "Downy mildew",
-};
 
 // ------ Times ------
 // Next.js draws the page twice: on the server, then again in the browser. toLocaleString can word
 // dates differently in each (Safari: "14 Oct at 05:40", the server: "14 Oct, 05:40"), and React errors
 // when the two don't match. Building the text by hand gives exactly the same result everywhere.
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
 const SAST_OFFSET = 2 * 60 * 60; // South Africa is UTC+2 all year (no daylight saving), in seconds
 
 // unix seconds -> "14 Oct, 05:40" in South African time
@@ -90,17 +70,26 @@ function formatAlertTime(unixSeconds) {
   return `${time.getUTCDate()} ${MONTHS[time.getUTCMonth()]}, ${hours}:${minutes}`;
 }
 
-// resolvedAt stays empty (null) while the alert is still open
-function isResolved(alert) {
-  return Boolean(alert.resolvedAt);
-}
+// the API sends leafNodes as {leafNodeID, leafNodeName}; the page shows them as "LN-02"
+const withNodeLabels = (alert) => ({
+  ...alert,
+  leafNodes: alert.leafNodes.map(
+    (node) => `LN-${String(node.leafNodeID).padStart(2, "0")}`,
+  ),
+});
 
 export default function Alerts() {
   // which tab is showing
   const [currentTab, setCurrentTab] = useState("active");
 
-  // the alert list, in state so the page updates when an alert is acknowledged
-  const [alerts, setAlerts] = useState(alertDetails);
+  // all alerts from the API (active and acknowledged together)
+  const [alerts, setAlerts] = useState([]);
+
+  // true until the first load finishes, so "No alerts" isn't flashed while loading
+  const [loading, setLoading] = useState(true);
+
+  // true when the last request to the API failed
+  const [loadError, setLoadError] = useState(false);
 
   // which alert is expanded, only one at a time (null when none are)
   const [openAlertId, setOpenAlertId] = useState(null);
@@ -108,120 +97,144 @@ export default function Alerts() {
   // theme colours from themeConfig.js, used for the severity edges
   const { token } = theme.useToken();
 
+  // fetches both lists and replaces the page's alerts with them
+  const refresh = useCallback(async () => {
+    try {
+      const [active, acknowledged] = await Promise.all([
+        getAlerts(),
+        getAcknowledgedAlerts(),
+      ]);
+      setAlerts(
+        [...active, ...acknowledged]
+          .filter((alert) => alert.alertSeverity >= 1) // hide low-risk alerts
+          .map(withNodeLabels),
+      );
+      setLoadError(false);
+    } catch (err) {
+      console.error(err);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // load when the page opens, then check for new alerts every minute
+  useEffect(() => {
+    refresh();
+    const id = setInterval(refresh, 60_000);
+    return () => clearInterval(id); // stop checking when the page closes
+  }, [refresh]);
+
   // sorts from highest to lowest alert severity
   // (|| only uses the time when the severity difference is 0)
-  const sortedAlerts = [...alerts].sort((a, b) => b.alertSeverity - a.alertSeverity || b.raisedAt - a.raisedAt);
+  const sortedAlerts = [...alerts].sort(
+    (a, b) => b.alertSeverity - a.alertSeverity || b.raisedAt - a.raisedAt,
+  );
 
   // only the alerts that belong on the current tab
-  const visibleAlerts = sortedAlerts.filter((alert) => {
-    if (currentTab === "resolved") return isResolved(alert);  //ticked as resolved
-    if (isResolved(alert)) return false;  // ...only show in Resolved tab
-    if (currentTab === "acknowledged") return alert.isAcknowledged;
-    return !alert.isAcknowledged; // active alerts
-  });
+  const visibleAlerts = sortedAlerts.filter((alert) =>
+    currentTab === "acknowledged"
+      ? alert.isAcknowledged
+      : !alert.isAcknowledged,
+  );
 
-  // marks alert as acknowledged, then moves it from Active to Acknowledged
-  function acknowledgeAlert(alertID) {
-    setAlerts((current) =>
-        current.map((alert) =>
-            alert.alertID === alertID ? { ...alert, isAcknowledged: true } : alert
-        )
-    );
-    // TODO send the acknowledgement to the backend so it's saved
-  }
-
-  // marks alert as resolved,  then moves it from Acknowledged to Resolved
-  function resolveAlert(alertID) {
-    const now = Math.floor(Date.now() / 1000); // unix seconds
-    setAlerts((current) =>
-        current.map((alert) =>
-            alert.alertID === alertID ? {...alert, resolvedAt: now} : alert
-        )
-    );
-    // TODO send to the backend so it's saved
+  // tells the backend the alert is acknowledged, then reloads so it moves to the Acknowledged tab
+  async function handleAcknowledge(alertID) {
+    try {
+      await acknowledgeAlert(alertID);
+      await refresh(); // the server stamps the time, so reload instead of editing state by hand
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   return (
     <Flex vertical gap="large">
       <Flex vertical gap="small">
         {/* Page title */}
-        <Typography.Title level={2} style={{margin:0}}>Mildew Alerts</Typography.Title>
-      {/* alert status tabs */}
-      <Tabs
+        <Typography.Title level={2} style={{ margin: 0 }}>
+          Mildew Alerts
+        </Typography.Title>
+        {/* alert status tabs */}
+        <Tabs
           activeKey={currentTab}
           onChange={setCurrentTab}
           items={alertTabs}
           // remove the tab bar's built-in bottom margin; the page gap handles spacing
           tabBarStyle={{ marginBottom: 0 }}
-      />
+        />
       </Flex>
+
+      {/* shown when the API can't be reached */}
+      {loadError && (
+        <Alert type="error" showIcon title="Couldn't reach the server" />
+      )}
 
       {/* alerts list  */}
       <Flex vertical gap="small">
-        {/* empty tab message */}
-        {visibleAlerts.length === 0 && <Empty description="No alerts currently"/>}
+        {/* empty tab message, only once loading has finished */}
+        {!loading && visibleAlerts.length === 0 && (
+          <Empty description="No alerts currently" />
+        )}
 
         {visibleAlerts.map((alert) => {
           const severity = severityStyles[alert.alertSeverity];
 
           return (
-              <Collapse
-                key={alert.alertID}
-                expandIconPlacement="end"
-                  // open only if this is the alert that was tapped last
-                activeKey={openAlertId === alert.alertID ? [alert.alertID] : []}
-                  // tapping a closed alert opens it (and closes the others), tapping the open one closes it
-                  onChange={(openKeys)=>setOpenAlertId(openKeys.length>0? alert.alertID : null)}
-                  //colour strip on left like with nodes page
-                style={{borderLeft: `4px solid ${token[severity.edge]}`}}
-                items={[
-                  {
-                    key: alert.alertID,
-                    //header i.e. mildew type, leaf nodes and time raised
-                    label: (
-                        <Flex vertical>
-                          <Typography.Text strong>{mildewLabels[alert.mildewType]}</Typography.Text>
+            <Collapse
+              key={alert.alertID}
+              expandIconPlacement="end"
+              // open only if this is the alert that was tapped last
+              activeKey={openAlertId === alert.alertID ? [alert.alertID] : []}
+              // tapping a closed alert opens it (and closes the others), tapping the open one closes it
+              onChange={(openKeys) =>
+                setOpenAlertId(openKeys.length > 0 ? alert.alertID : null)
+              }
+              //colour strip on left like with nodes page
+              style={{ borderLeft: `4px solid ${token[severity.edge]}` }}
+              items={[
+                {
+                  key: alert.alertID,
+                  // header: title, leaf nodes and time raised
+                  label: (
+                    <Flex vertical>
+                      <Typography.Text strong>Mildew risk</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {alert.leafNodes.join(", ")} ·{" "}
+                        {/* nowrap: if the line is too long, the whole time moves down instead of splitting */}
+                        <span style={{ whiteSpace: "nowrap" }}>
+                          {formatAlertTime(alert.raisedAt)}
+                        </span>
+                      </Typography.Text>
+                    </Flex>
+                  ),
+                  // risk tag on header
+                  extra: <Tag color={severity.colour}>{severity.label}</Tag>,
+                  // body: the message, then either the acknowledged time or the Acknowledge button
+                  children: (
+                    <Flex vertical gap="middle">
+                      <Typography.Text>{alert.alertMessage}</Typography.Text>
+
+                      {alert.isAcknowledged ? (
+                        // resolvedAt is stamped by the backend at the moment of acknowledging
+                        alert.resolvedAt ? (
                           <Typography.Text type="secondary">
-                            {alert.leafNodes.join(", ")} ·{" "}
-                            {/* nowrap: if the line is too long, the whole time moves down instead of splitting */}
-                            <span style={{ whiteSpace: "nowrap" }}>{formatAlertTime(alert.raisedAt)}</span>
+                            Acknowledged {formatAlertTime(alert.resolvedAt)}
                           </Typography.Text>
-                        </Flex>
-                    ),
-                    //risk tag on header
-                    extra: <Tag color={severity.colour}>{severity.label}</Tag>,
-                    //tag body i.e message plus acknowledge button
-                    children:(
-                        <Flex vertical gap="middle">
-                          <Typography.Text>{alert.alertMessage}</Typography.Text>
-
-                          {/* when it ended, only for finished alerts */}
-                          {isResolved(alert) && (
-                              <Typography.Text type="secondary">
-                                Resolved {formatAlertTime(alert.resolvedAt)}
-                              </Typography.Text>
-                          )}
-
-                          {/* only open unacknowledged alerts can be acknowledged */}
-                          {!alert.isAcknowledged && !isResolved(alert) && (
-                              <Button type="primary" onClick={() => acknowledgeAlert(alert.alertID)}>
-                                Acknowledge
-                              </Button>
-                          )}
-
-
-                          {/* acknowledged but still open: can be ticked as resolved */}
-                          {alert.isAcknowledged && !isResolved(alert) && (
-                              <Button type="primary" icon={<RiCheckLine size={18} />} onClick={() => resolveAlert(alert.alertID)}>
-                                Mark as resolved
-                              </Button>
-                          )}
-
-                        </Flex>
-                    ),
-                  },
-                ]}
-              />
+                        ) : null
+                      ) : (
+                        <Button
+                          type="primary"
+                          onClick={() => handleAcknowledge(alert.alertID)}
+                        >
+                          Acknowledge
+                        </Button>
+                      )}
+                    </Flex>
+                  ),
+                },
+              ]}
+            />
           );
         })}
       </Flex>
