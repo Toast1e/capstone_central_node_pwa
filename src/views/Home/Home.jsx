@@ -9,6 +9,8 @@ import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimel
 import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
 import { useSettings } from "../../contexts/SettingsContext";
 
+import { apiFetch } from "../../../lib/api";
+
 // UI Libraries mostly Ant design libraries
 import {
   Typography,
@@ -23,17 +25,58 @@ import {
 } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 
-import Papa from "papaparse";
-
 const totalNodes = 6;
 
-// "sensor readings" one card per reading type
-const metrics = [
-  { title: "HUMIDITY", value: 93, unit: "%", note: "Above 90% for 3h" },
-  { title: "TEMPERATURE", value: 19.4, unit: "°C", note: "not spicy" },
-  { title: "LEAF WETNESS", value: 60, unit: "%", note: "Wet leaves detected" },
-  { title: "WIND", value: 9.4, unit: "m/s", note: "aaahhhhh" },
+// no sensors for these yet, so they stay as placeholders
+const unmeasuredMetrics = [
+  { title: "LEAF WETNESS", value: 60, unit: "%" },
+  { title: "WIND", value: 9.4, unit: "m/s" },
 ];
+
+const severityLabels = { 2: "high", 1: "moderate", 0: "low" };
+
+async function loadHistory(hours, leafNodeID) {
+  const { reading } = await apiFetch(
+    `/api/history?hours=${hours}&leafNodeID=${leafNodeID}`,
+  );
+  return reading.map((r) => ({
+    RealTimeLog: toLocalText(r.realTimeLog ?? r.receivedAt),
+    Temperature: r.temperature,
+    Humidity: r.humidity,
+  }));
+}
+
+const loadLatest = (leafNodeID) =>
+  apiFetch(`/api/leafnodes/${leafNodeID}/details`);
+
+async function loadAlerts() {
+  const { alerts } = await apiFetch("/api/alerts");
+  return alerts;
+}
+
+// A node can have several open alerts (low, then moderate, then high each
+// raise one), so keep only the worst severity per node.
+function worstSeverityByNode(alerts) {
+  const worst = new Map();
+  for (const alert of alerts) {
+    for (const { leafNodeID } of alert.leafNodes) {
+      worst.set(
+        leafNodeID,
+        Math.max(worst.get(leafNodeID) ?? -1, alert.alertSeverity),
+      );
+    }
+  }
+  return worst;
+}
+
+// "Updated 14:30", or with the date when the reading isn't from today
+function updatedNote(sec) {
+  const d = new Date(sec * 1000);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === new Date().toDateString()) return `Updated ${time}`;
+  const day = d.toLocaleDateString([], { day: "numeric", month: "short" });
+  return `Updated ${day} ${time}`;
+}
 
 // ------ Chart options ------
 const diseaseOptions = [
@@ -46,32 +89,12 @@ const timeRangeOptions = [
   { label: "7 days", value: "7d" },
 ];
 
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-
 // unix seconds -> "YYYY-MM-DD HH:MM:SS" (same text format your CSVs used)
 function toLocalText(sec) {
   const d = new Date(sec * 1000);
   const p = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
-
-async function loadHistory(hours, leafNodeID) {
-  const res = await fetch(
-    `${API_URL}/api/history?hours=${hours}&leafNodeID=${leafNodeID}`,
-  );
-  if (!res.ok) throw new Error(`history: ${res.status}`);
-  const { reading } = await res.json();
-  return reading.map((r) => ({
-    // the API sorts by realTimeLog, falling back to receivedAt, so do the same
-    RealTimeLog: toLocalText(r.realTimeLog ?? r.receivedAt),
-    Temperature: r.temperature,
-    Humidity: r.humidity,
-  }));
-}
-
-
-
 
 // Magnus formula; returns null when the inputs are not usable
 function calculateDewpoint(humidity, temperature) {
@@ -91,9 +114,6 @@ function calculateDewpoint(humidity, temperature) {
 function toTime(ts) {
   return new Date(String(ts).replace(" ", "T")).getTime();
 }
-
-// The charts and the timeline now
-// work out the 7 day view from all readings themselves.
 
 // orange for temperature
 const temperatureColour = "#eb6834";
@@ -118,9 +138,11 @@ export default function Home() {
   // thresholds for diseases
   const thresholds = mildewThresholds[disease];
 
-  // load the CSV files, only when the time range changes
+  // newest reading for the selected node (null while loading)
+  const [latest, setLatest] = useState(null);
 
- useEffect(() => {
+  // for graphs
+  useEffect(() => {
     let cancelled = false;
     const hours = timeRange === "24h" ? 24 : 168;
 
@@ -138,6 +160,80 @@ export default function Home() {
     };
   }, [timeRange, node]);
 
+  // For temp and humidity card values
+  useEffect(() => {
+    let cancelled = false;
+    setLatest(null); // don't show the previous node's values while loading
+
+    async function refresh() {
+      try {
+        const data = await loadLatest(node);
+        if (!cancelled) setLatest(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    refresh();
+    const id = setInterval(refresh, 60_000); // pick up new readings every minute
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [node]);
+
+  const [alerts, setAlerts] = useState([]);
+
+  /// for alerts
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refresh() {
+      try {
+        const data = await loadAlerts();
+        if (!cancelled) setAlerts(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    refresh();
+    const id = setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []); // not node-specific, the banner covers every node
+
+  // [leafNodeID, worst open severity], worst first
+  const nodeRisks = [...worstSeverityByNode(alerts).entries()].sort(
+    (a, b) => b[1] - a[1] || a[0] - b[0],
+  );
+  const needAttention = nodeRisks.filter(([, severity]) => severity >= 1);
+  const countAt = (severity) =>
+    nodeRisks.filter(([, s]) => s === severity).length;
+
+  const lastReadingNote = !latest
+    ? "Loading…"
+    : latest.lastReadingAt == null
+      ? "No readings yet"
+      : updatedNote(latest.lastReadingAt);
+
+  const metrics = [
+    {
+      title: "HUMIDITY",
+      value: latest?.readings.humidity ?? "–",
+      unit: "%",
+      note: lastReadingNote,
+    },
+    {
+      title: "TEMPERATURE",
+      value: latest?.readings.temperature ?? "–",
+      unit: "°C",
+      note: lastReadingNote,
+    },
+    ...unmeasuredMetrics,
+  ];
   const graphHumidity = graphReadings.map((reading) => ({
     time: reading.RealTimeLog,
     value: reading.Humidity,
@@ -179,20 +275,30 @@ export default function Home() {
 
       {/* alerts banner */}
       <Alert
-        type="warning"
+        type={needAttention.length > 0 ? "warning" : "success"}
         showIcon
-        title="2 areas need attention"
+        title={
+          needAttention.length > 0
+            ? `${needAttention.length} ${needAttention.length === 1 ? "area needs" : "areas need"} attention`
+            : "No areas need attention"
+        }
         description={
-          <Flex vertical gap={8}>
-            {/* alert details */}
-            <span>LN 2 is at high risk of downy mildew.</span>
-            {/* alerts severity breakdown */}
-            <Flex gap={4} wrap>
-              <Tag color="red">1 High</Tag>
-              <Tag color="orange">1 Moderate</Tag>
-              <Tag color="green">4 Low</Tag>
+          needAttention.length > 0 ? (
+            <Flex vertical gap={8}>
+              {/* one line per node at moderate or high risk */}
+              {needAttention.map(([id, severity]) => (
+                <span key={id}>
+                  LN {id} is at {severityLabels[severity]} risk of mildew.
+                </span>
+              ))}
+              {/* severity breakdown */}
+              <Flex gap={4} wrap>
+                <Tag color="red">{countAt(2)} High</Tag>
+                <Tag color="orange">{countAt(1)} Moderate</Tag>
+                <Tag color="green">{countAt(0)} Low</Tag>
+              </Flex>
             </Flex>
-          </Flex>
+          ) : undefined
         }
       />
 
@@ -236,7 +342,9 @@ export default function Home() {
               <Statistic
                 title={metric.title}
                 value={metric.value}
-                suffix={metric.unit}
+                suffix={
+                  typeof metric.value === "number" ? metric.unit : undefined
+                }
               />
               <Typography.Text type="secondary">{metric.note}</Typography.Text>
             </Card>
