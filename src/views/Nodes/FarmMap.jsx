@@ -11,21 +11,28 @@ import { FARM_MAP } from "./mockNodeDetails";
 /**
  * Drawn map of the farm with one leaf node highlighted.
  *
- * selectedId  the leaf node to highlight, e.g. "LN-03"
+ * selectedId  leafNodeID for example 3
  */
-export default function FarmMap({ selectedId }) {
+export default function FarmMap({ selectedId, leafNodes }) {
     // theme colours from themeConfig.js
     const { token } = theme.useToken();
 
     // draw the selected node last so it sits on top of the others
-    const nodes = [...FARM_MAP.nodes].sort((a, b) => (a.id === selectedId) - (b.id === selectedId));
+    const nodes = [...FARM_MAP.nodes].sort(
+        (a, b) => (a.leafNodeID === selectedId) - (b.leafNodeID === selectedId)
+    );
+
+    // the name to write next to a pin: looked up by ID, so a renamed node shows its new name
+    function nameOf(leafNodeID) {
+        return leafNodes.find((node) => node.leafNodeID === leafNodeID)?.leafNodeName;
+    }
 
     return (
         <svg
             viewBox={`0 0 ${FARM_MAP.width} ${FARM_MAP.height}`}
             width="100%"
             role="img"
-            aria-label={`Farm map showing where ${selectedId} is`}
+            aria-label={`Farm map showing where ${nameOf(selectedId)} is`}
             style={{ display: "block", background: token.colorBgLayout, borderRadius: token.borderRadius }}
         >
             {/* draws vineyard blocks, each with faint lines for the vine rows */}
@@ -59,9 +66,9 @@ export default function FarmMap({ selectedId }) {
 
             {/* leaf nodes, the selected one is bigger and in the theme colour */}
             {nodes.map((node) => {
-                const selected = node.id === selectedId;
+                const selected = node.leafNodeID === selectedId;
                 return (
-                    <g key={node.id}>
+                    <g key={node.leafNodeID}>
                         {selected && <circle cx={node.x} cy={node.y} r={12} fill={token.colorPrimary} opacity={0.2} />}
                         <circle
                             cx={node.x}
@@ -83,7 +90,7 @@ export default function FarmMap({ selectedId }) {
                             strokeWidth={3}
                             paintOrder="stroke"
                         >
-                            {node.id}
+                            {nameOf(node.leafNodeID)}
                         </text>
                     </g>
                 );

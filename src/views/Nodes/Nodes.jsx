@@ -21,13 +21,17 @@ const centralNode = {
     database: "Syncing OK",
 };
 
-const leafNodes = [
-    { id: "LN-01", battery: 88, connection: "GOOD", lastSeen: "14:56" },
-    { id: "LN-02", battery: 91, connection: "GOOD", lastSeen: "14:56" },
-    { id: "LN-03", battery: 76, connection: "LOW", lastSeen: null },
-    { id: "LN-04", battery: 83, connection: "GOOD", lastSeen: "14:56" },
-    { id: "LN-05", battery: 34, connection: "NONE", lastSeen: null },
-    { id: "LN-06", battery: 94, connection: "GOOD", lastSeen: "14:56" },
+// shaped like rows of the database's leafnode table.
+// leafNodeID never changes; leafNodeName can be edited, so the page finds nodes by ID
+// TODO connection and lastSeen still need matching to leafNodeStatus and lastConnectedAt
+// TODO blockID once the block table exists
+const initialLeafNodes = [
+    { leafNodeID: 1, leafNodeName: "LN-01", leafNodeLatitude: -33.934120, leafNodeLongitude: 18.861230, leafNodeBattery: 88, connection: "GOOD", lastSeen: "14:56" },
+    { leafNodeID: 2, leafNodeName: "LN-02", leafNodeLatitude: -33.934510, leafNodeLongitude: 18.862040, leafNodeBattery: 91, connection: "GOOD", lastSeen: "14:56" },
+    { leafNodeID: 3, leafNodeName: "LN-03", leafNodeLatitude: -33.933870, leafNodeLongitude: 18.863150, leafNodeBattery: 76, connection: "LOW", lastSeen: null },
+    { leafNodeID: 4, leafNodeName: "LN-04", leafNodeLatitude: -33.934290, leafNodeLongitude: 18.863980, leafNodeBattery: 83, connection: "GOOD", lastSeen: "14:56" },
+    { leafNodeID: 5, leafNodeName: "LN-05", leafNodeLatitude: null, leafNodeLongitude: null, leafNodeBattery: 34, connection: "NONE", lastSeen: null },
+    { leafNodeID: 6, leafNodeName: "LN-06", leafNodeLatitude: null, leafNodeLongitude: null, leafNodeBattery: 94, connection: "GOOD", lastSeen: "14:56" },
 ];
 
 // ------ Connection status display ------
@@ -39,6 +43,10 @@ const connectionStatus = {
 };
 
 export default function Nodes() {
+
+    // the leaf nodes, in state so an edit shows straight away
+    const [leafNodes, setLeafNodes] = useState(initialLeafNodes);
+
     // number of leaf nodes with active connection, show in header tag
     const nodesActivelyConnected = leafNodes.filter((node) => node.connection !== "NONE").length;
 
@@ -46,12 +54,22 @@ export default function Nodes() {
     const { token } = theme.useToken();
 
     // the leaf node whose pop-up is showing, and whether it's open kept separate so the pop-up keeps its content while it animates closed
-    const [selectedNode, setSelectedNode] = useState(null);
+    // only the ID is stored, and the node is looked up from the list every time, so the pop-up always shows the latest name and location after an edit
+    const [selectedNodeID, setSelectedNodeID] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const selectedNode = leafNodes.find((node) => node.leafNodeID === selectedNodeID);
 
     function openNode(node) {
-        setSelectedNode(node);
+        setSelectedNodeID(node.leafNodeID);
         setModalOpen(true);
+    }
+
+    // copies in the edited fields (name, latitude, longitude) for one leaf node
+    function saveNode(leafNodeID, changes) {
+        setLeafNodes((current) =>
+            current.map((node) => (node.leafNodeID === leafNodeID ? { ...node, ...changes } : node))
+        );
+        // TODO send the changes to the backend so they're saved
     }
 
   return (
@@ -105,7 +123,7 @@ export default function Nodes() {
 
                       return (
                           <Card
-                              key={node.id}
+                              key={node.leafNodeID}
                               size="small"
                               style={{borderLeft: `4px solid ${token[status.edge]}`, cursor: "pointer"}}
                               hoverable
@@ -113,8 +131,8 @@ export default function Nodes() {
                           >
                               <Flex justify="space-between" align="center" gap="small">
                                   <Flex vertical>
-                                      <Typography.Text strong>{node.id}</Typography.Text>
-                                      <Typography.Text>Battery {node.battery}%</Typography.Text>
+                                      <Typography.Text strong>{node.leafNodeName}</Typography.Text>
+                                      <Typography.Text>Battery {node.leafNodeBattery}%</Typography.Text>
                                       <Typography.Text type="secondary">
                                           Connection: {node.connection}
                                           {node.lastSeen && ` ${node.lastSeen}`} {/*only if time available*/}
@@ -136,11 +154,13 @@ export default function Nodes() {
           {/* modal for the selected leaf node, a new one for each node */}
           {selectedNode && (
               <LeafNodeModal
-                  key={selectedNode.id}
+                  key={selectedNode.leafNodeID}
                   node={selectedNode}
                   status={connectionStatus[selectedNode.connection]}
+                  leafNodes={leafNodes}
                   open={modalOpen}
                   onClose={() => setModalOpen(false)}
+                  onSave={(changes)=> saveNode(selectedNode.leafNodeID, changes)}
               />
           )}
 
