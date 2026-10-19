@@ -46,34 +46,32 @@ const timeRangeOptions = [
   { label: "7 days", value: "7d" },
 ];
 
-// ------ CSV files ------
-// Constants live outside the component so they are not recreated on every render
-const dayFiles = ["csv/mildew_2026-07-10.csv"];
-const weekFileNames = [
-  "csv/mildew_2026-07-13.csv",
-  "csv/mildew_2026-07-08.csv",
-  "csv/mildew_2026-07-10.csv",
-  "csv/mildew_2026-07-09.csv",
-  "csv/mildew_2026-07-11.csv",
-  "csv/mildew_2026-07-12.csv",
-  "csv/mildew_2026-07-07.csv",
-];
 
-async function loadCsv(file) {
-  const response = await fetch(file);
-  if (!response.ok) throw new Error(`${file}: ${response.status}`);
-  const text = await response.text();
-  const { data } = Papa.parse(text, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: true,
-  });
-  return data.map((row) => ({
-    RealTimeLog: row["timestamp"],
-    Temperature: row["temp_c"],
-    Humidity: row["humidity_pct"],
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+// unix seconds -> "YYYY-MM-DD HH:MM:SS" (same text format your CSVs used)
+function toLocalText(sec) {
+  const d = new Date(sec * 1000);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+async function loadHistory(hours, leafNodeID) {
+  const res = await fetch(
+    `${API_URL}/api/history?hours=${hours}&leafNodeID=${leafNodeID}`,
+  );
+  if (!res.ok) throw new Error(`history: ${res.status}`);
+  const { reading } = await res.json();
+  return reading.map((r) => ({
+    // the API sorts by realTimeLog, falling back to receivedAt, so do the same
+    RealTimeLog: toLocalText(r.realTimeLog ?? r.receivedAt),
+    Temperature: r.temperature,
+    Humidity: r.humidity,
   }));
 }
+
+
+
 
 // Magnus formula; returns null when the inputs are not usable
 function calculateDewpoint(humidity, temperature) {
@@ -122,51 +120,23 @@ export default function Home() {
 
   // load the CSV files, only when the time range changes
 
-  useEffect(() => {
+ useEffect(() => {
     let cancelled = false;
-    const files = timeRange === "24h" ? dayFiles : weekFileNames;
+    const hours = timeRange === "24h" ? 24 : 168;
 
-    async function load() {
-      // Promise.allSettled keeps results in the same order as `files`,
-      // and one missing file does not break the whole chart
-      const results = await Promise.allSettled(files.map(loadCsv));
-
-      // ignore the results if the user toggled away while loading
-      if (cancelled) return;
-
-      const loaded = [];
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          loaded.push(...result.value);
-        } else {
-          console.warn(`Skipped ${files[i]}:`, result.reason);
-        }
+    loadHistory(hours, node)
+      .then((rows) => {
+        if (!cancelled) setGraphReadings(rows);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setGraphReadings([]);
       });
-
-      // Drop rows with an unreadable timestamp, then put all
-      // readings in time order BEFORE downsampling, so the files can arrive
-      // or be listed in any order
-      const sorted = loaded
-        .filter((r) => !Number.isNaN(toTime(r.RealTimeLog)))
-        .sort((a, b) => toTime(a.RealTimeLog) - toTime(b.RealTimeLog));
-
-      // Remove duplicates. If two files contain the same
-      // Reading (same timestamp) only one is kept.
-      const unique = [
-        ...new Map(sorted.map((r) => [toTime(r.RealTimeLog), r])).values(),
-      ];
-
-      // All readings (duplicates removed) for BOTH ranges. The old
-      // "every 30th row" thinning for 7 days left the chart with too few
-      // points per slot, so the line broke into single dots.
-      setGraphReadings(unique);
-    }
-    load().catch(console.error);
 
     return () => {
       cancelled = true;
     };
-  }, [timeRange]);
+  }, [timeRange, node]);
 
   const graphHumidity = graphReadings.map((reading) => ({
     time: reading.RealTimeLog,
