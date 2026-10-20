@@ -1,4 +1,23 @@
-import { NetworkFirst, Serwist } from "serwist";
+import { ExpirationPlugin, NetworkFirst, Serwist } from "serwist";
+
+// Only what the Home and Profile pages read (GET requests).
+// Exact paths: the query string (hours, leafNodeID) isn't part of url.pathname,
+// but the cache still keeps one entry per full URL, so each node/range is stored separately.
+const DATA_PATHS = new Set([
+    "/api/centralnode", // node name (SettingsContext, shown on Home and Profile)
+    "/api/alerts",      // Home alert banner
+    "/api/history",     // Home charts and condition timeline
+    "/api/leafnodes"
+]);
+
+
+
+// Home's latest-reading cards: /api/leafnodes/1/details ... /api/leafnodes/6/details
+const NODE_DETAILS = /^\/api\/leafnodes\/\d+\/details$/;
+
+const isCachedData = ({ url, request }) =>
+    request.method === "GET" &&
+    (DATA_PATHS.has(url.pathname) || NODE_DETAILS.test(url.pathname));
 
 const serwist = new Serwist({
     precacheEntries: self.__SW_MANIFEST,
@@ -22,12 +41,14 @@ const serwist = new Serwist({
             },
         },
         {
-            // Currently just gets the mock backend csvs. Swap for the actual path once the backend api is finished.
-            matcher: ({ url }) => url.pathname.endsWith(".csv"),
+            matcher: isCachedData,
             handler: new NetworkFirst({
-                cacheName: "vitisense-csv-data",
+                cacheName: "vitisense-api-data",
                 networkTimeoutSeconds: 3,
-            })
+                // 6 nodes x 2 chart ranges (12) + 6 node details + alerts + centralnode = 20,
+                // so 20 would evict something. 30 leaves headroom.
+                plugins: [new ExpirationPlugin({ maxEntries: 30 })],
+            }),
         },
     ],
 });
