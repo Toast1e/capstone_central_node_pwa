@@ -166,13 +166,21 @@ export default function ThresholdChart({
     windowEnd,
   );
 
+  // FIX: leave out the empty slots so the line joins the real readings instead of
+  // breaking at every gap. The x axis (chart.domain) still covers the full range.
+  const drawn = chart === null ? [] : chart.points.filter((p) => p.value != null);
+  // fewer than 2 readings per line: no line is possible, so show dots instead
+  const sparse = drawn.length / Math.max(seriesNames.length, 1) < 2;
+
   return (
     <Card title={title} size="small">
       {chart === null ? (
         <Typography.Text type="secondary">No readings to show.</Typography.Text>
       ) : (
         <Line
-          data={chart.points}
+          // FIX: remount when the range changes instead of morphing between two different lines
+          key={timeRange}
+          data={drawn}
           xField="time"
           yField="value"
           colorField="series"
@@ -183,6 +191,12 @@ export default function ThresholdChart({
           style={{ lineWidth: 2 }}
           // false = a point with no value leaves a gap, the line is not drawn across it
           connectNulls={false}
+          // FIX: AntV animates between the old and new line path, and with many null gaps
+          // (the 24h view has mostly empty slots) that morph hits "Maximum recursion depth
+          // reached in equalizeSegments". No animation = no morph = no crash.
+          animate={false}
+          // dots only when there are too few readings to draw a line (see `sparse` above)
+          {...(sparse ? { point: { shapeField: "circle", sizeField: 3 } } : {})}
           scale={{
             // real time axis with a fixed start and end
             x: {
