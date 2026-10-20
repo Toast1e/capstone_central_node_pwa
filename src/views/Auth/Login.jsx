@@ -6,11 +6,13 @@ import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
 import { WifiOutlined, DisconnectOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useConnection } from "@/contexts/ConnectionContext";
+import { useSettings } from "@/contexts/SettingsContext";
 
 export default function Login() {
   const { login, loading } = useAuth();
   const router = useRouter();
   const { status } = useConnection();
+  const {username} = useSettings(); //central nodes' name from profile page
 
   // No credentials or validation yet - any submit logs you in.
   const onFinish = async () => {
@@ -45,7 +47,7 @@ export default function Login() {
           <Flex vertical gap="small">
             <Form name="login" onFinish={onFinish} autoComplete="off">
 
-              {/* Vitisense Logo */}
+              {/* VitiSense name and one-liner */}
               <Form.Item>
                 <Flex vertical align="center" justify="center">
                   <Typography.Title level={2}>VitiSense</Typography.Title>
@@ -61,7 +63,7 @@ export default function Login() {
               </Form.Item>
 
               {/* Which connection node */}
-              <Typography.Title level={4}>Central Node 1</Typography.Title>
+              <Typography.Title level={4}>{username}</Typography.Title>
 
               {/* Password */}
               <Form.Item name="password">
@@ -70,7 +72,7 @@ export default function Login() {
 
               {/* Remember Me check */}
               <Form.Item name="remember" valuePropName="checked" label={null}>
-                <Checkbox>Keep me signed in this phone</Checkbox>
+                <Checkbox>Keep me signed in on this phone</Checkbox>
               </Form.Item>
 
               {/* Buttons */}

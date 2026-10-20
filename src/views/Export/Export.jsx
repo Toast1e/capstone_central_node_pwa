@@ -10,27 +10,26 @@ import {RiDownload2Line} from "@remixicon/react";
 //how dates are shown
 const dateFormat = 'YYYY/MM/DD';
 
+// TODO get the leaf node names from the backend (the same list as the Nodes page)
 const leafNodeOptions = [
     "All Leaf Nodes",
-    "Leaf Node 1",
-    "Leaf Node 2",
-    "Leaf Node 3",
-    "Leaf Node 4",
-    "Leaf Node 5",
-    "Leaf Node 6"
+    "LN-01",
+    "LN-02",
+    "LN-03",
+    "LN-04",
+    "LN-05",
+    "LN-06",
 ];
 
 const readingOptions = [
     "Temperature & Humidity",
-    "Leaf Wetness",
-    "Wind Speed",
     "Node ID & Battery Logs"
 ];
 
 const fileFormatOptions = [
     {label: "CSV (Excel)", value: "csv"},
     {label: "JSON (Raw)", value: "json"}
-]
+];
 
 export default function Export() {
     // export date range as [start, end], both empty to begin with
@@ -56,10 +55,10 @@ export default function Export() {
                 ? withoutAll.filter((n) => n !== node)
                 : [...withoutAll, node];
 
-            //if all single nodes get selected change back to all nodes
+            //if no single nodes get selected change back to all nodes
             return updated.length >0 ? updated : ["All Leaf Nodes"];
         });
-  }
+    };
 
     // TODO send this to the backend and download the file it returns
     function handleDownload() {
@@ -119,7 +118,7 @@ export default function Export() {
         </Card>
 
         {/* Readings to include section */}
-        <Card size="small" title="Reading to Include">
+        <Card size="small" title="Readings to Include">
             <Checkbox.Group value={readings} onChange={setReadings}>
                 <Flex vertical gap="small">
                     {readingOptions.map((reading) => (

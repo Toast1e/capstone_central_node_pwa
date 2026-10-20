@@ -1,8 +1,8 @@
 // ------ Placeholder leaf node details ------ CREATED WITH AI FOR TESTING PURPOSES
 // TODO replace with requests to the backend
 
-// each leaf node's own readings, signal and place on  the mock farm map, found by leafNodeID
-// // (the ID never changes, unlike the name, which the farmer can edit)
+// each leaf node's last reading time, signal and place on the mock farm map, found by leafNodeID
+// (the ID never changes, unlike the name, which the farmer can edit)
 // x and y are positions on the mock farm map (300 wide, 200 tall)
 const NODE_DETAILS = [
     {
@@ -16,7 +16,7 @@ const NODE_DETAILS = [
         lastReading: "14:56",
         signal: -67,
         location: { block: "A", row: 12, x: 112, y: 72 },
-     },
+    },
     {
         leafNodeID: 3,
         lastReading: "13:48",
