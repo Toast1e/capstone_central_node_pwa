@@ -158,7 +158,7 @@ export default function ThresholdGraph({
 
   const seriesNames = Object.keys(colors);
 
-  // `?? []` so a chart without dewpointData (undefined or null) cannot crash
+  // `?? []` so a chart without data (undefined or null) cannot crash
   const chart = buildChartData(
     data ?? [],
     seriesNames,
