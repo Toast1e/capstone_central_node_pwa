@@ -61,7 +61,7 @@ function toTime(ts) {
  *
  * - The time window is fixed: 24 h or 7 days, ending at `windowEnd` (or the
  *   newest reading), so the axis never shrinks when data is missing.
- * - The window is cut into time slots (1 h for 24h, 3 h for 7 days). The
+ * - The window is cut into time slots (30 min for 24h, 3 h for 7 days). The
  *   readings in a slot are averaged into one point.
  * - A slot with no readings gives a point with value null, which the chart
  *   draws as a gap in the line.
@@ -106,7 +106,7 @@ function buildChartData(rows, seriesNames, timeRange, windowEnd) {
   // one point per slot per line, including the empty slots
   const points = [];
   for (let slot = slotOf(start); slot <= slotOf(end); slot++) {
-    // plot at the START of the slot (on the hour), kept inside the window at both ends.
+    // plot at the START of the slot (e.g. 14:00 or 14:30), kept inside the window at both ends.
     // `from` and `to` keep the whole slot for the tooltip.
     const from = slot * bucketMs + offset;
     const time = new Date(Math.min(Math.max(from, start), end));
@@ -128,21 +128,21 @@ function buildChartData(rows, seriesNames, timeRange, windowEnd) {
 /**
  * Line chart of sensor readings with a shaded mildew risk zone.
  *
- * data          rows of { time, value, series }, one row per line per reading
- * dewpointData  optional, same shape, drawn on the same chart (null or left out = none)
- * colours       { "Series name": "#hex" } in legend order
- * unit          added after numbers, e.g. "°C"
- * yDomain       [lowest, highest] for the y axis
- * riskZone      { from, to, label } range to shade
- * timeRange     "24h" or "7d": how much time the x axis covers
- * windowEnd     optional, milliseconds. Where the x axis ends. Defaults to the
- *               newest reading; pass Date.now() once the data is live.
+ * title      card heading, e.g. "Relative humidity"
+ * data       rows of { time, value, series }, one row per line per reading
+ * colours     { "Series name": "#hex" } in legend order
+ * unit       added after numbers, e.g. "°C"
+ * yDomain    [lowest, highest] for the y-axis
+ * riskZone   { from, to, label } range to shade
+ * timeRange  "24h" or "7d" (default "24h"): how much time the x-axis covers.
+ *            Without it the time window can't be worked out and nothing is drawn.
+ * windowEnd  optional, milliseconds. Where the x-axis ends. Defaults to the
+ *            newest reading; pass Date.now() once the data is live.
  */
-// timeRange defaults to "24h": without it the time window cannot be worked out and nothing is drawn
-export default function ThresholdChart({
+
+export default function ThresholdGraph({
   title,
   data,
-  dewpointData,
   colors,
   unit,
   yDomain,
@@ -160,7 +160,7 @@ export default function ThresholdChart({
 
   // `?? []` so a chart without dewpointData (undefined or null) cannot crash
   const chart = buildChartData(
-    [...(data ?? []), ...(dewpointData ?? [])],
+    data ?? [],
     seriesNames,
     timeRange,
     windowEnd,
