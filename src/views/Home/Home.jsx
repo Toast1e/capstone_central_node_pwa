@@ -89,9 +89,6 @@ function toTime(ts) {
   return new Date(String(ts).replace(" ", "T")).getTime();
 }
 
-// The charts and the timeline now
-// work out the 7 day view from all readings themselves.
-
 // orange for temperature
 const temperatureColour = "#eb6834";
 

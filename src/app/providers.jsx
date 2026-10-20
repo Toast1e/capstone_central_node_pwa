@@ -1,6 +1,6 @@
 "use client";
 
-// UI librariers ant designs
+// UI libraries Ant design
 import { ConfigProvider } from "antd";
 import { SerwistProvider } from "@serwist/turbopack/react";
 
