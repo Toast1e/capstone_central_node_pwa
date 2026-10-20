@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
-import { Card, Layout, Space, Flex, Typography, Button } from 'antd';
+import { Card, Space, Flex, Typography, Button } from 'antd';
 import { RiArrowDownSLine, RiArrowRightSLine } from "@remixicon/react";
 import "./CustomAlertComponent.css";
 
