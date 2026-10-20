@@ -6,7 +6,7 @@ import dynamic from "next/dynamic";
 // UI Libraries mostly Ant design libraries
 import { Card, Flex, Typography, theme } from "antd";
 
-import { useSettings } from "../../contexts/SettingsContext";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // the chart draws on a canvas, which only exists in the browser, loaded client-side only and skipped during server rendering
 const Line = dynamic(
