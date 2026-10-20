@@ -1,5 +1,5 @@
 // Our own data
-import { MILDEW_THRESHOLDS } from "@/views/Home/mildewThresholds";
+import { MILDEW_THRESHOLDS } from "@/data/mildewThresholds";
 
 // ------ Standard alert messages ------
 // The database only stores the finished text (alertMessage), so the Pi writes it when it raises an alert.

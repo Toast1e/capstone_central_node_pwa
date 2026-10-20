@@ -2,7 +2,7 @@
 
 import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert } from "antd";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import "./Login.css";
 import { WifiOutlined, DisconnectOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useConnection } from "@/contexts/ConnectionContext";

@@ -4,10 +4,10 @@
 import { useEffect, useState } from "react";
 
 // own components and data
-import { MILDEW_THRESHOLDS as mildewThresholds } from "./mildewThresholds";
-import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
-import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
-import { useSettings } from "../../contexts/SettingsContext";
+import { MILDEW_THRESHOLDS} from "@/data/mildewThresholds";
+import ConditionTimeline from "@/components/ConditionTimeline/ConditionTimeline";
+import ThresholdGraph from "@/components/ThresholdGraph/ThresholdGraph";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // UI Libraries mostly Ant design libraries
 import {
@@ -110,7 +110,7 @@ export default function Home() {
   const [graphReadings, setGraphReadings] = useState([]);
 
   // thresholds for diseases
-  const thresholds = mildewThresholds[disease];
+  const thresholds = MILDEW_THRESHOLDS[disease];
 
   // load the CSV files, only when the time range changes
 
@@ -316,7 +316,7 @@ export default function Home() {
         {/* timeline of when each disease's conditions were met */}
         <ConditionTimeline
           readings={graphReadings}
-          thresholds={{ [disease]: mildewThresholds[disease] }}
+          thresholds={{ [disease]: thresholds }}
           timeRange={timeRange}
         />
 
