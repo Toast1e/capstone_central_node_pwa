@@ -49,7 +49,7 @@ export default function MainLayout({ children }) {
           </Flex>
 
           <Text strong className="textSize">
-            {NAV_ITEMS.find(options => options.path == pathname).label}
+            {NAV_ITEMS.find((item) => pathname.startsWith(item.path))?.label}
           </Text>
 
         </Flex>
