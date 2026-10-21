@@ -87,7 +87,7 @@ export default function Login() {
 
               {/* Remember Me check */}
               <Form.Item name="remember" valuePropName="checked" label={null}>
-                <Checkbox>Keep me signed in on this phone</Checkbox>
+                <Checkbox>Keep me signed in on this device</Checkbox>
               </Form.Item>
 
               {/* Buttons */}
