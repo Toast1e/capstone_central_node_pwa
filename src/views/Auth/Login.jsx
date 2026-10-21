@@ -4,18 +4,24 @@ import { Layout, Checkbox, Card, Form, Input, Button, Typography, Flex, Alert } 
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import "./Login.css";
+import { useState } from "react";
 import { WifiOutlined, DisconnectOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useConnection } from "@/contexts/ConnectionContext";
 
 export default function Login() {
   const { login, loading } = useAuth();
   const router = useRouter();
+  const [error, setError] = useState(null);
   const { status } = useConnection();
 
-  // No credentials or validation yet - any submit logs you in.
-  const onFinish = async () => {
-    await login();
-    router.push("/home");
+  const onFinish = async ({password,remember}) => {
+    setError(null);
+    const result = await login(password, remember);
+    if (result.success) {
+      router.push("/home");
+    } else {
+      setError(result.error);
+    }
   };
 
   const connectionStatus = {
@@ -64,8 +70,17 @@ export default function Login() {
               <Typography.Title level={4}>Central Node 1</Typography.Title>
 
               {/* Password */}
-              <Form.Item name="password">
-                <Input.Password placeholder="Password" disabled={loading} />
+              <Form.Item
+                name="password"
+                rules={[{ required: true, message: "Enter your password" }]}
+                validateStatus={error ? "error" : undefined}
+                help={error}
+              >
+                <Input.Password
+                  placeholder="Password"
+                  disabled={loading}
+                  onChange={() => setError(null)}
+                />
               </Form.Item>
 
               {/* Remember Me check */}
