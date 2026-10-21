@@ -4,10 +4,10 @@
 import { useEffect, useState } from "react";
 
 // own components and data
-import { MILDEW_THRESHOLDS as mildewThresholds } from "./mildewThresholds";
-import ConditionTimeline from "../../components/ConditionTimeline/ConditionTimeline";
-import ThresholdGraph from "../../components/ThresholdGraph/ThresholdGraph";
-import { useSettings } from "../../contexts/SettingsContext";
+import { MILDEW_THRESHOLDS} from "@/data/mildewThresholds";
+import ConditionTimeline from "@/components/ConditionTimeline/ConditionTimeline";
+import ThresholdGraph from "@/components/ThresholdGraph/ThresholdGraph";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // UI Libraries mostly Ant design libraries
 import {
@@ -25,15 +25,9 @@ import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 
 import Papa from "papaparse";
 
+// ------ Placeholder data ------
+// TODO replace with data from the backend
 const totalNodes = 6;
-
-// "sensor readings" one card per reading type
-const metrics = [
-  { title: "HUMIDITY", value: 93, unit: "%", note: "Above 90% for 3h" },
-  { title: "TEMPERATURE", value: 19.4, unit: "°C", note: "not spicy" },
-  { title: "LEAF WETNESS", value: 60, unit: "%", note: "Wet leaves detected" },
-  { title: "WIND", value: 9.4, unit: "m/s", note: "aaahhhhh" },
-];
 
 // ------ Chart options ------
 const diseaseOptions = [
@@ -48,15 +42,16 @@ const timeRangeOptions = [
 
 // ------ CSV files ------
 // Constants live outside the component so they are not recreated on every render
-const dayFiles = ["csv/mildew_2026-07-10.csv"];
+// the last day of the week below, so 24h and 7 days both end at the same latest reading
+const dayFiles = ["csv/mildew_2026-07-13.csv"];
 const weekFileNames = [
-  "csv/mildew_2026-07-13.csv",
+  "csv/mildew_2026-07-07.csv",
   "csv/mildew_2026-07-08.csv",
-  "csv/mildew_2026-07-10.csv",
   "csv/mildew_2026-07-09.csv",
+  "csv/mildew_2026-07-10.csv",
   "csv/mildew_2026-07-11.csv",
   "csv/mildew_2026-07-12.csv",
-  "csv/mildew_2026-07-07.csv",
+  "csv/mildew_2026-07-13.csv",
 ];
 
 async function loadCsv(file) {
@@ -94,9 +89,6 @@ function toTime(ts) {
   return new Date(String(ts).replace(" ", "T")).getTime();
 }
 
-// The charts and the timeline now
-// work out the 7 day view from all readings themselves.
-
 // orange for temperature
 const temperatureColour = "#eb6834";
 
@@ -118,7 +110,7 @@ export default function Home() {
   const [graphReadings, setGraphReadings] = useState([]);
 
   // thresholds for diseases
-  const thresholds = mildewThresholds[disease];
+  const thresholds = MILDEW_THRESHOLDS[disease];
 
   // load the CSV files, only when the time range changes
 
@@ -143,9 +135,7 @@ export default function Home() {
         }
       });
 
-      // Drop rows with an unreadable timestamp, then put all
-      // readings in time order BEFORE downsampling, so the files can arrive
-      // or be listed in any order
+      // drop rows with an unreadable timestamp, then put the readings in time order, so the files can arrive or be listed in any order
       const sorted = loaded
         .filter((r) => !Number.isNaN(toTime(r.RealTimeLog)))
         .sort((a, b) => toTime(a.RealTimeLog) - toTime(b.RealTimeLog));
@@ -156,9 +146,7 @@ export default function Home() {
         ...new Map(sorted.map((r) => [toTime(r.RealTimeLog), r])).values(),
       ];
 
-      // All readings (duplicates removed) for BOTH ranges. The old
-      // "every 30th row" thinning for 7 days left the chart with too few
-      // points per slot, so the line broke into single dots.
+      // all readings, duplicates removed, for both 24h and 7 days
       setGraphReadings(unique);
     }
     load().catch(console.error);
@@ -193,6 +181,32 @@ export default function Home() {
     return points;
   });
 
+  // ------ Latest reading cards ------
+  // the readings are sorted by time, so the last one is the newest (undefined while still loading)
+  const latest = graphReadings[graphReadings.length - 1];
+
+  // e.g. "powdery risk zone", the same shaded zones as the charts below
+  const zoneName = `${thresholds.label.toLowerCase()} risk zone`;
+
+  // one card for each reading the leaf nodes measure, using the same rules as ConditionTimeline.
+  // ?. because latest is undefined until the CSV has loaded (undefined >= 15 is just false, no crash)
+  const metrics = [
+    {
+      title: "TEMPERATURE",
+      value: latest?.Temperature,
+      unit: "°C",
+      // in the risk zone when it's between the disease's min and max
+      atRisk: latest?.Temperature >= thresholds.temperature.min && latest?.Temperature <= thresholds.temperature.max,
+    },
+    {
+      title: "HUMIDITY",
+      value: latest?.Humidity,
+      unit: "%",
+      // in the risk zone when it's above the disease's min
+      atRisk: latest?.Humidity > thresholds.humidity.min,
+    },
+  ];
+
   return (
     <Flex vertical gap="large">
       {/* Page title */}
@@ -202,12 +216,11 @@ export default function Home() {
         </Typography.Title>
         {/* number nodes being monitored */}
         <Typography.Text type="secondary">
-          {" "}
           {totalNodes} Leaf Nodes monitored
         </Typography.Text>
       </Flex>
 
-      {/* alerts banner */}
+      {/* alerts banner. TODO build it from the active alerts (same data as the Alerts page) */}
       <Alert
         type="warning"
         showIcon
@@ -228,7 +241,7 @@ export default function Home() {
 
       {/* Leaf nodes section */}
       <Flex vertical gap="middle">
-        {/* Leaf node selector */}
+        {/* Leaf node selector. TODO use the real leaf nodes (IDs and names) from the backend */}
         <Flex justify="space-between" align="center">
           {/* disable previous button when node number === 1 */}
           <Button
@@ -252,7 +265,7 @@ export default function Home() {
           />
         </Flex>
 
-        {/* 4 sensor readings card grid */}
+        {/* latest reading cards: the newest reading on the charts below */}
         <div
           style={{
             display: "grid",
@@ -263,15 +276,28 @@ export default function Home() {
         >
           {metrics.map((metric) => (
             <Card key={metric.title}>
+              {/* loading shows a grey placeholder until the CSV arrives; precision={1} = one decimal */}
               <Statistic
                 title={metric.title}
                 value={metric.value}
                 suffix={metric.unit}
+                precision={1}
+                loading={!latest}
               />
-              <Typography.Text type="secondary">{metric.note}</Typography.Text>
+              {/* orange when the reading is inside the selected disease's risk zone */}
+              <Typography.Text type={metric.atRisk ? "warning" : "secondary"}>
+                {metric.atRisk ? `In the ${zoneName}` : `Outside the ${zoneName}`}
+              </Typography.Text>
             </Card>
           ))}
         </div>
+
+        {/* when the cards' reading was taken: "2026-07-13T23:55:00" -> "2026-07-13 23:55" */}
+        {latest && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Latest reading: {String(latest.RealTimeLog).replace("T", " ").slice(0, 16)}
+            </Typography.Text>
+        )}
 
         {/* chart controls, one row that applies to all charts */}
         <Flex justify="space-between" align="center" wrap gap="small">
@@ -280,7 +306,6 @@ export default function Home() {
             value={disease}
             onChange={setDisease}
           />
-          {/* <Segmented options={fileOptions} value={fileName} onChange={setFileName} /> */}
           <Segmented
             options={timeRangeOptions}
             value={timeRange}
@@ -291,7 +316,7 @@ export default function Home() {
         {/* timeline of when each disease's conditions were met */}
         <ConditionTimeline
           readings={graphReadings}
-          thresholds={{ [disease]: mildewThresholds[disease] }}
+          thresholds={{ [disease]: thresholds }}
           timeRange={timeRange}
         />
 
@@ -310,7 +335,7 @@ export default function Home() {
             to: thresholds.temperature.max,
             label: `${thresholds.label} risk: ${thresholds.temperature.min}–${thresholds.temperature.max} °C`,
           }}
-          // CHANGE 4: the chart needs this to know whether to show 24h or 7 days
+            // the chart needs this to know whether to show 24h or 7 days
           timeRange={timeRange}
         />
 
@@ -326,8 +351,8 @@ export default function Home() {
             to: 100,
             label: `${thresholds.label} risk: above ${thresholds.humidity.min}%`,
           }}
-          // CHANGE 4: the chart needs this to know whether to show 24h or 7 days
-          timeRange={timeRange}
+            // the chart needs this to know whether to show 24h or 7 days
+            timeRange={timeRange}
         />
       </Flex>
     </Flex>

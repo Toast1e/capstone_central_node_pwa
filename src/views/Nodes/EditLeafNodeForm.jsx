@@ -1,11 +1,17 @@
 "use client";
 
-// React and NextJS
-import { useEffect, useState } from "react";
+// React and Next.js
+import { useSyncExternalStore, useState } from "react";
 
 // UI Libraries mostly Ant design libraries
 import { Alert, Button, Flex, Form, Input, InputNumber, Typography } from "antd";
 import { RiMapPinLine } from "@remixicon/react";
+
+// whether the browser can give us the device's location never changes while the page is open,
+// so there's nothing to listen for: this "subscribe" does nothing and has nothing to clean up
+function subscribeToNothing() {
+    return () => {};
+}
 
 // 6 decimal places is about 10 cm, more exact than a phone's GPS anyway
 function roundCoordinate(value) {
@@ -19,12 +25,13 @@ export default function EditLeafNodeForm({ node, takenNames, onSave, onCancel })
     // lets the "Use my location" button fill in the latitude and longitude boxes
     const [form] = Form.useForm();
 
-    // is the browser allowed to give us the phone's location?
-    // only on https (or localhost), so it won't work if the Pi serves the app over plain http
-    const [canLocate, setCanLocate] = useState(false);
-    useEffect(() => {
-        setCanLocate(window.isSecureContext && "geolocation" in navigator);
-    }, []);
+    // is the browser allowed to give us the device's location... only on https (or localhost), so it won't work if the Pi serves the app over plain http.
+    // read from the browser with useSyncExternalStore; the server has no browser, so it assumes "no"
+    const canLocate = useSyncExternalStore(
+        subscribeToNothing,
+        () => window.isSecureContext && "geolocation" in navigator,
+        () => false
+    );
 
     // while waiting for the phone's GPS, and what happened
     const [locating, setLocating] = useState(false);
