@@ -75,7 +75,7 @@ export default function Profile() {
                     />
                     <Flex vertical>
                         <Typography.Title level={4} style={{ margin: 0 }}>{username}</Typography.Title>
-                        <Typography.Text type="secondary">Signed in on this phone</Typography.Text>
+                        <Typography.Text type="secondary">Signed in on this device</Typography.Text>
                     </Flex>
                 </Flex>
             </Card>
