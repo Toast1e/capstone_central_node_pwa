@@ -17,7 +17,7 @@ const centralNode = {
     uptime: "14 days",
     storageFree: "68%",
     hotspot: "Active",
-    phonesConnected: 3,
+    devicesConnected: 3,
     database: "Syncing OK",
 };
 
@@ -100,7 +100,7 @@ export default function Nodes() {
                       <ul style={{margin: "8px 0 0", paddingLeft: 20 }}>
                           <li>
                               WiFi Hotspot: <Typography.Text strong>{centralNode.hotspot}</Typography.Text>{" "}
-                              ({centralNode.phonesConnected} phones connected)
+                              ({centralNode.devicesConnected} devices connected)
                           </li>
                           <li>
                               Database: <Typography.Text strong>{centralNode.database}</Typography.Text>
