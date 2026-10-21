@@ -79,7 +79,7 @@ export default function Nodes() {
               <Flex justify="space-between" align="center" wrap gap="small">
                   <Typography.Title level={2} style={{margin:0}}>Leaf Nodes</Typography.Title>
                   {/* how many leaf nodes have active connection */}
-                  <Tag color="success">{nodesActivelyConnected} OF  {leafNodes.length} REPORTING</Tag>
+                  <Tag color="success">{nodesActivelyConnected} OF {leafNodes.length} REPORTING</Tag>
               </Flex>
           </Flex>
 

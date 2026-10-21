@@ -22,8 +22,8 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
     // true if the details couldn't be loaded
     const [failed, setFailed] = useState(false);
 
-    // which view the pop-up shows: "readings" or "map" or "edit"
-    const [view, setView] = useState("readings");
+    // which view the pop-up shows: "details" or "map" or "edit"
+    const [view, setView] = useState("details");
 
     // still waiting for the details
     const loading = details === null && !failed;
@@ -55,16 +55,16 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
         };
     }, [open, node.leafNodeID]);
 
-    // save the changes, then go back to the readings
+    // save the changes, then go back to the details
     function handleSave(changes) {
         onSave(changes);
-        setView("readings");
+        setView("details");
     }
 
     // the buttons at the bottom change with the view; the edit form has its own Save and Cancel
     // (short labels so both buttons fit on one line on a phone)
     let footer =null;
-    if (view === "readings") {
+    if (view === "details") {
         footer = (
             <Flex gap="small" justify="end" wrap>
                 <Button icon={<RiPencilLine size={16}/>} onClick={() => setView("edit")}>
@@ -77,8 +77,8 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
         );
     } else if (view === "map") {
         footer = (
-            <Button icon={<RiArrowLeftLine size={16}/>} onClick={() => setView("readings")}>
-                Back to readings
+            <Button icon={<RiArrowLeftLine size={16}/>} onClick={() => setView("details")}>
+                Back to details
             </Button>
         )
     }
@@ -93,15 +93,15 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
         <Modal
             open={open}
             onCancel={onClose}
-            // back to the readings view once it has finished closing
-            afterClose={() => setView("readings")}
+            // back to the details view once it has finished closing
+            afterClose={() => setView("details")}
             title={
                 <Flex align="center" gap="small">
                     {node.leafNodeName}
                     <Tag color={status.colour}>{status.label}</Tag>
                 </Flex>
             }
-            // edit form doesn't need deatails so won't wait for them to load
+            // edit form doesn't need details so won't wait for them to load
             loading={loading && view !== "edit"}
             footer={footer}
             centered
@@ -111,8 +111,8 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
                 <Alert type="error" showIcon title="Couldn't load this node's details. Close and try again." />
             )}
 
-            {/* readings view */}
-            {details && view === "readings" && (
+            {/* details view */}
+            {details && view === "details" && (
                 <Flex vertical gap="middle">
                     {/* warn when the node has no signal */}
                     {node.connection === "NONE" && (
@@ -160,7 +160,7 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
                     node={node}
                     takenNames={takenNames}
                     onSave={handleSave}
-                    onCancel={() => setView("readings")}
+                    onCancel={() => setView("details")}
                 />
             )}
 

@@ -91,7 +91,7 @@ export default function Profile() {
                         block
                     />
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                        Auto follows your device's light or dark setting.
+                        Auto follows your device&apos;s light or dark setting.
                     </Typography.Text>
                 </Flex>
             </Card>

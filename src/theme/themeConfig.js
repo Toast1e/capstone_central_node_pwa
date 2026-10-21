@@ -1,6 +1,5 @@
 // ------ VitiSense app theme ------
 // every antd component in the app reads its colours, corners and font from here
-// every component in app reads its colours etc... from here
 import {theme} from "antd";
 
 const sharedTokens = {

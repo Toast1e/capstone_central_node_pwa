@@ -3,8 +3,7 @@
 // UI Libraries mostly Ant design libraries
 import { Card, Flex, Tooltip, Typography, theme } from "antd";
 
-// Our own components
-//import { formatTick, formatTooltipTime } from "@/components/ThresholdGraph/ThresholdGraph";
+// Our own contexts
 import { useSettings } from "@/contexts/SettingsContext";
 
 // ------ Timeline colours ------
@@ -84,6 +83,7 @@ function formatTime(ms) {
     minute: "2-digit",
   });
 }
+
 // readings with a usable timestamp, in time order, each with its time `t` in ms
 function prepareReadings(readings) {
   return readings
@@ -220,9 +220,10 @@ function findTimeLabels(windowStart, windowEnd, timeRange) {
 }
 
 /**
- * Two rows (powdery and downy) showing for how long conditions favoured each
- * disease. Each coloured bar is one continuous stretch of time: its position
- * and width come from the real timestamps, and its length is its duration.
+ * One row per disease in `thresholds` (Home passes only the selected disease),
+ * showing for how long conditions favoured it. Each coloured bar is one continuous
+ * stretch of time: its position and width come from the real timestamps, and its
+ * length is its duration.
  *
  * readings    rows of { RealTimeLog, Temperature, Humidity, wind? }, any number
  *             of them (every 5 minutes is fine)

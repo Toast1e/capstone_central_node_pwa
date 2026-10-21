@@ -4,7 +4,7 @@ import { Layout, Flex, Button, Typography } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
-import {useSettings} from "../contexts/SettingsContext";
+import {useSettings} from "@/contexts/SettingsContext";
 import { useConnection } from "@/contexts/ConnectionContext";
 
 const { Text } = Typography;
@@ -49,7 +49,7 @@ export default function MainLayout({ children }) {
           </Flex>
 
           <Text strong className="textSize">
-            {NAV_ITEMS.find(options => options.path == pathname).label}
+            {NAV_ITEMS.find((item) => pathname.startsWith(item.path))?.label}
           </Text>
 
         </Flex>
