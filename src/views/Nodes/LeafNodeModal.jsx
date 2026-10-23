@@ -56,8 +56,8 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
     }, [open, node.leafNodeID]);
 
     // save the changes, then go back to the readings
-    function handleSave(changes) {
-        onSave(changes);
+    async function handleSave(changes) {
+        await onSave(changes);
         setView("readings");
     }
 

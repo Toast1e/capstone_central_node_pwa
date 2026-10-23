@@ -10,7 +10,12 @@ import { RiCpuLine, RiArrowRightSLine } from "@remixicon/react";
 // Our own components and API calls
 import LeafNodeModal from "./LeafNodeModal";
 import { getCentralNode } from "../../../lib/centralNode";
-import { getLeafNodeCards } from "../../../lib/nodes";
+import {
+    clearLeafNodeCoordinates,
+    getLeafNodeCards,
+    renameLeafNode,
+    updateLeafNodeCoordinates,
+} from "../../../lib/nodes";
 
 // ------ Connection status display ------
 // tag label and colour for each connection level
@@ -88,11 +93,41 @@ export default function Nodes() {
     }
 
     // copies in the edited fields (name, latitude, longitude) for one leaf node
-    function saveNode(leafNodeID, changes) {
-        setLeafNodes((current) =>
-            current.map((node) => (node.leafNodeID === leafNodeID ? { ...node, ...changes } : node))
-        );
-        // TODO send the changes to the backend so they're saved
+    async function saveNode(leafNodeID, changes) {
+        const node = leafNodes.find((item) => item.leafNodeID === leafNodeID);
+        if (!node) throw new Error("Leaf node not found");
+
+        function applyChanges(savedChanges) {
+            setLeafNodes((current) =>
+                current.map((item) =>
+                    item.leafNodeID === leafNodeID ? { ...item, ...savedChanges } : item
+                )
+            );
+        }
+
+        if (changes.leafNodeName !== node.leafNodeName) {
+            await renameLeafNode(leafNodeID, changes.leafNodeName);
+            applyChanges({ leafNodeName: changes.leafNodeName });
+        }
+
+        const coordinatesChanged =
+            changes.leafNodeLatitude !== node.leafNodeLatitude ||
+            changes.leafNodeLongitude !== node.leafNodeLongitude;
+        if (coordinatesChanged) {
+            if (changes.leafNodeLatitude == null && changes.leafNodeLongitude == null) {
+                await clearLeafNodeCoordinates(leafNodeID);
+            } else {
+                await updateLeafNodeCoordinates(
+                    leafNodeID,
+                    changes.leafNodeLatitude,
+                    changes.leafNodeLongitude
+                );
+            }
+            applyChanges({
+                leafNodeLatitude: changes.leafNodeLatitude,
+                leafNodeLongitude: changes.leafNodeLongitude,
+            });
+        }
     }
 
     if (failed) {
