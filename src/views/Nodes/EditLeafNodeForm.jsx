@@ -30,6 +30,8 @@ export default function EditLeafNodeForm({ node, takenNames, onSave, onCancel })
     const [locating, setLocating] = useState(false);
     const [accuracy, setAccuracy] = useState(null); // metres
     const [locationError, setLocationError] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState(null);
 
     // asks the phone where it is and puts the answer in the boxes
     function fillMyLocation() {
@@ -61,13 +63,25 @@ export default function EditLeafNodeForm({ node, takenNames, onSave, onCancel })
     }
 
     // runs when Save is pressed and every rule below passes
-    function handleFinish(values) {
-        onSave({
-            leafNodeName: values.leafNodeName.trim(),
-            // ?? null: an empty box is saved as "no location yet"
-            leafNodeLatitude: values.leafNodeLatitude ?? null,
-            leafNodeLongitude: values.leafNodeLongitude ?? null,
-        });
+    async function handleFinish(values) {
+        setSaving(true);
+        setSaveError(null);
+        try {
+            await onSave({
+                leafNodeName: values.leafNodeName.trim(),
+                // ?? null: an empty box is saved as "no location yet"
+                leafNodeLatitude: values.leafNodeLatitude ?? null,
+                leafNodeLongitude: values.leafNodeLongitude ?? null,
+            });
+        } catch (error) {
+            setSaveError(
+                error instanceof Error
+                    ? error.message
+                    : "Couldn't save the leaf node. Check your connection and try again."
+            );
+        } finally {
+            setSaving(false);
+        }
     }
 
     // latitude and longitude only make sense together, so if one is filled in the other is needed too
@@ -169,10 +183,12 @@ export default function EditLeafNodeForm({ node, takenNames, onSave, onCancel })
                 </Form.Item>
             </Flex>
 
+            {saveError && <Alert type="error" showIcon title={saveError} style={{ marginBottom: 16 }} />}
+
             {/* Cancel goes back without saving; Save checks the rules first */}
             <Flex gap="small" justify="end">
-                <Button onClick={onCancel}>Cancel</Button>
-                <Button type="primary" htmlType="submit">Save</Button>
+                <Button onClick={onCancel} disabled={saving}>Cancel</Button>
+                <Button type="primary" htmlType="submit" loading={saving}>Save</Button>
             </Flex>
         </Form>
     );
