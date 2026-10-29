@@ -11,6 +11,7 @@ import { RiLogoutBoxRLine, RiMoonLine, RiRouterLine, RiSmartphoneLine, RiSunLine
 // Our own contexts
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useConnection } from "@/contexts/ConnectionContext";
 
 // ------ Setting options ------
 // the 3 choices i.e light or dark or device settings
@@ -34,6 +35,10 @@ export default function Profile() {
     // app settings shared with the rest of the app (SettingsContext.jsx)
     const { username, themeMode, updateSetting } = useSettings();
 
+    // this is to ensure editing is only allows while the central node is reachable.
+    const { status } = useConnection();
+    const isConnected = status === "connected";
+
     // logout() forgets who is signed in, then we send them to the login page ourselves
     const { logout } = useAuth();
     const router = useRouter();
@@ -54,8 +59,12 @@ export default function Profile() {
     // only allow Save when there's a name and it's different from the current one
     const nameChanged = trimmedName !== "" && trimmedName !== username;
 
+    // only allow save when there's a valid new name AND a connection to the central node.
+    const canSave = nameChanged && isConnected;
+
     // save the new name, then go back to showing the saved name
     function saveName() {
+        if (!canSave) return;
         updateSetting("username", trimmedName);
         setNewName(null);
     }
@@ -108,16 +117,18 @@ export default function Profile() {
                                 value={showName}
                                 onChange={(event) => setNewName(event.target.value)}
                                 // Enter on the keyboard saves too
-                                onPressEnter={() => nameChanged && saveName()}
+                                onPressEnter={() => canSave && saveName()}
                                 maxLength={30}
                                 aria-label="Central node name"
                             />
-                            <Button type="primary" disabled={!nameChanged} onClick={saveName}>
+                            <Button type="primary" disabled={!canSave} onClick={saveName}>
                                 Save
                             </Button>
                         </Space.Compact>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                            Shown in the top bar and on the Home page.
+                            {isConnected
+                                ? "Shown in the top bar and on the Home page."
+                                : "Connect to the central node to change the name."}
                         </Typography.Text>
                     </Flex>
 
