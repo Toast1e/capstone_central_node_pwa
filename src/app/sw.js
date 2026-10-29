@@ -47,7 +47,7 @@ const serwist = new Serwist({
                 networkTimeoutSeconds: 3,
                 // 6 nodes x 2 chart ranges (12) + 6 node details + alerts + centralnode = 20,
                 // so 20 would evict something. 30 leaves headroom.
-                plugins: [new ExpirationPlugin({ maxEntries: 30 })],
+                plugins: [new ExpirationPlugin({ maxEntries: 40 })],
             }),
         },
     ],
