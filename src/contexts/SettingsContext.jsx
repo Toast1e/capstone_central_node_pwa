@@ -2,7 +2,7 @@
 
 // React and NextJS
 import {createContext, useContext, useEffect, useSyncExternalStore} from "react";
-import { getCentralNodeName } from "../../lib/centralNode";
+import { getCentralNodeName } from "@/lib/centralNode";
 
 // ------ App settings ------
 // saved on the current device so they survive a refresh

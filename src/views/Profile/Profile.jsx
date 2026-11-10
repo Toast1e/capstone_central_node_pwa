@@ -3,7 +3,7 @@
 // React and NextJS
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { renameCentralNode } from "../../../lib/centralNode";
+import { renameCentralNode } from "@/lib/centralNode";
 
 
 

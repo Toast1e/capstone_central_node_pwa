@@ -3,7 +3,7 @@
 // Component to track the state of the connectivity to the central node.
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { API_URL, apiFetch } from "../../lib/api";
+import { API_URL, apiFetch } from "@/lib/api";
 
 const PING_URL = "/";
 const PING_INTERVAL_MS = 5000; // wait between next ping from phone to central node.

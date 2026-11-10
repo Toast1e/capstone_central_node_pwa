@@ -9,7 +9,7 @@ import ConditionTimeline from "@/components/ConditionTimeline/ConditionTimeline"
 import ThresholdGraph from "@/components/ThresholdGraph/ThresholdGraph";
 import { useSettings } from "@/contexts/SettingsContext";
 
-import { apiFetch } from "../../../lib/api";
+import { apiFetch } from "@/lib/api";
 
 // UI Libraries mostly Ant design libraries
 import {

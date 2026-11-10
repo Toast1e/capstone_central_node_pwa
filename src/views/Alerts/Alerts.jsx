@@ -21,7 +21,7 @@ import {
   getAlerts,
   getAcknowledgedAlerts,
   acknowledgeAlert,
-} from "../../../lib/alerts";
+} from "@/lib/alerts";
 
 // ------ Tabs ------
 // tabs across the top of the page. The backend sets resolvedAt when an alert is

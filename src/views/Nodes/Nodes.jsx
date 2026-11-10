@@ -9,13 +9,13 @@ import { RiCpuLine, RiArrowRightSLine } from "@remixicon/react";
 
 // Our own components and API calls
 import LeafNodeModal from "./LeafNodeModal";
-import { getCentralNode } from "../../../lib/centralNode";
+import { getCentralNode } from "@/lib/centralNode";
 import {
     clearLeafNodeCoordinates,
     getLeafNodeCards,
     renameLeafNode,
     updateLeafNodeCoordinates,
-} from "../../../lib/nodes";
+} from "@/lib/nodes";
 
 // ------ Connection status display ------
 // tag label and colour for each connection level

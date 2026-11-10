@@ -8,7 +8,7 @@ import { DatePicker, Flex, Typography, Button, Checkbox, Card, Segmented } from 
 import {RiDownload2Line} from "@remixicon/react";
 
 // API call (lib/export.js)
-import { downloadReadings } from "../../../lib/export";
+import { downloadReadings } from "@/lib/export";
 
 //how dates are shown
 const dateFormat = 'YYYY/MM/DD';

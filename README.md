@@ -104,6 +104,7 @@ src/
   views/          The actual page components (Login, Home, Profile)
   components/     Shared components (RequireAuth)
   contexts/       React contexts (AuthContext)
+  lib/            Calls to the central node's API (api.js holds its address)
 public/           Static assets (icons/ is generated)
 scripts/          generate-icons.mjs - draws the app icons
 next.config.ts
@@ -128,6 +129,21 @@ The app has login only - there is no registration. The login compares the submit
 
 Because `NEXT_PUBLIC_PASSWORD_HASH` is bundled into the client app, this is suitable only for a demo/shared-device password, not secure production authentication.
 
+`.env` is not in git, so it must be in this folder on the machine that deploys to the Pi (see [Deployment](#deployment)). Without it the app still builds, but the login page answers "Login is not configured."
+
+### Data from the central node
+
+The pages get their data from the backend's API (`/api/...`, see `ingest/app.py` in the backend repo). Every call goes through `src/lib/`, and `src/lib/api.js` decides which address is asked:
+
+- **On the Pi** the app and the API share one address, so nothing is set and the requests are relative (`/api/alerts`).
+- **With `npm run dev`** the API runs somewhere else. Put its address in `.env.local`, then restart the dev server:
+
+  ```
+  NEXT_PUBLIC_API_URL=http://localhost:8000
+  ```
+
+  To run the API on your own machine with mock data, see the commands at the top of `docker-compose.local.yml` and `seed_mock.py` in the backend repo.
+
 ### Styling
 
 UI components come from [Ant Design](https://ant.design); the brand colour is set once in `src/app/providers.jsx`. Ant Design's styles are placed in a CSS layer (see `src/app/globals.css`), so rules in our own `.css` files always override its defaults without needing `!important`.
@@ -136,7 +152,8 @@ UI components come from [Ant Design](https://ant.design); the brand colour is se
 
 The app runs on the central node's Raspberry Pi. Phones join the Pi's Wi-Fi and open it in the browser, or install it to the home screen.
 
-- **Static export.** `next.config.ts` sets `output: "export"`, so `npm run build` produces plain HTML/CSS/JS in `out/` and no Node.js server runs on the Pi. That rules out anything that needs a server: route handlers, server actions, `cookies()`/`headers()`, and `redirects`/`rewrites` in `next.config.ts`. Fetch data from the Pi's API with relative URLs, e.g. `fetch("/api/latest")`. Cookies the API sets are sent along automatically.
+- **Static export.** `next.config.ts` sets `output: "export"`, so `npm run build` produces plain HTML/CSS/JS in `out/` and no Node.js server runs on the Pi. That rules out anything that needs a server: route handlers, server actions, `cookies()`/`headers()`, and `redirects`/`rewrites` in `next.config.ts`. Fetch data from the Pi's API through `src/lib/` (see [Data from the central node](#data-from-the-central-node)).
 - **Built and served by the backend repo.** The `web` container in [capstone_central_node_backend](https://github.com/Toast1e/capstone_central_node_backend) builds this repo and serves `out/` with NGINX, next to the API. It expects the two repos in the same folder. Its README has the deploy steps.
+- **What the Pi's build sees.** The backend's `web/Dockerfile` copies only `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, `postcss.config.mjs`, `src/`, `public/`, and `.env` when there is one. Code the app imports must therefore live under `src/`; a folder next to it builds on your machine and fails on the Pi. `.env.local` is never copied, so the Pi's build has no `NEXT_PUBLIC_API_URL` and the app asks the Pi itself.
 - **Installable app.** `src/app/manifest.js` describes the app to phones (name, colours, icons). Installing only works when the site is served over HTTPS.
 - **Icons.** `scripts/generate-icons.mjs` draws the icon and writes `public/icons/*`, `src/app/apple-icon.png` and `src/app/favicon.ico`. To change it, edit the SVG in that script, run `npm run icons`, and commit the new images.
