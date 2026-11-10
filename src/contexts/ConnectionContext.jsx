@@ -3,10 +3,36 @@
 // Component to track the state of the connectivity to the central node.
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { API_URL, apiFetch } from "../../lib/api";
 
 const PING_URL = "/";
 const PING_INTERVAL_MS = 5000; // wait between next ping from phone to central node.
 const PING_TIMEOUT_MS = 3000; // wait for 3 seconds until connection timesout and state gets switched.
+
+// Requests everything Home can display, so the service worker's NetworkFirst rule (sw.js) caches it for offline use.
+// The URLs must match Home.jsx exactly (same path, same parameter order), otherwise the cache keys differ and offline misses them.
+// Node IDs come from the API, so any number of leaf nodes works.
+async function warmCache() {
+    try {
+        const { leafNodes } = await apiFetch("/api/leafnodes/status");
+
+        const paths = ["/api/alerts", "/api/centralnode"];
+        for (const { leafNodeID } of leafNodes) {
+            paths.push(
+                `/api/history?hours=24&leafNodeID=${leafNodeID}`,  // Home 24h view
+                `/api/history?hours=168&leafNodeID=${leafNodeID}`, // Home 7-day view
+                `/api/leafnodes/${leafNodeID}/details`,            // Home latest-reading cards
+            );
+        }
+
+        // failures are ignored: one bad request must not stop the others, and offline there is nothing to warm
+        await Promise.allSettled(paths.map((path) => fetch(`${API_URL}${path}`)));
+        return true;
+    } catch {
+        // status call failed (API down or still starting): nothing to warm, the caller retries on the next ping
+        return false;
+    }
+}
 
 // Context creation to hold the current state of the connection.
 const ConnectionContext = createContext(null);
@@ -20,6 +46,8 @@ export function ConnectionProvider({ children }) {
     useEffect(() => {
         let cancelled = false;
         let timer;
+        let warmed = false;  // so the cache is only warmed once per connection, not on every ping
+        let warming = false; // a warm-up is in flight: don't start a second one
 
         async function ping() {
             const controller = new AbortController();
@@ -41,6 +69,17 @@ export function ConnectionProvider({ children }) {
 
             if (cancelled) return;
             setStatus(reachable ? "connected" : "disconnected");
+
+            // warmed = the cache was filled since we last (re)connected; stays false until warmCache succeeds, so a failed attempt is retried
+            if (!reachable) {
+                warmed = false;
+            } else if (!warmed && !warming) {
+                warming = true;
+                warmCache().then((ok) => {
+                    warmed = ok;
+                    warming = false;
+                });
+            }
 
             timer = setTimeout(ping, PING_INTERVAL_MS);
         }
