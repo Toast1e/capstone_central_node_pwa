@@ -55,9 +55,10 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
         };
     }, [open, node.leafNodeID]);
 
-    // save the changes, then go back to the details
-    function handleSave(changes) {
-        onSave(changes);
+    // save the changes, then go back to the details.
+    // If saving fails the form stays open and shows why (see EditLeafNodeForm)
+    async function handleSave(changes) {
+        await onSave(changes);
         setView("details");
     }
 

@@ -9,6 +9,8 @@ import ConditionTimeline from "@/components/ConditionTimeline/ConditionTimeline"
 import ThresholdGraph from "@/components/ThresholdGraph/ThresholdGraph";
 import { useSettings } from "@/contexts/SettingsContext";
 
+import { apiFetch } from "@/lib/api";
+
 // UI Libraries mostly Ant design libraries
 import {
   Typography,
@@ -23,11 +25,11 @@ import {
 } from "antd";
 import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 
-import Papa from "papaparse";
-
 // ------ Placeholder data ------
-// TODO replace with data from the backend
+// TODO replace with the leaf nodes from the backend
 const totalNodes = 6;
+
+const severityLabels = { 2: "high", 1: "moderate", 0: "low" };
 
 // ------ Chart options ------
 const diseaseOptions = [
@@ -40,34 +42,28 @@ const timeRangeOptions = [
   { label: "7 days", value: "7d" },
 ];
 
-// ------ CSV files ------
-// Constants live outside the component so they are not recreated on every render
-// the last day of the week below, so 24h and 7 days both end at the same latest reading
-const dayFiles = ["csv/mildew_2026-07-13.csv"];
-const weekFileNames = [
-  "csv/mildew_2026-07-07.csv",
-  "csv/mildew_2026-07-08.csv",
-  "csv/mildew_2026-07-09.csv",
-  "csv/mildew_2026-07-10.csv",
-  "csv/mildew_2026-07-11.csv",
-  "csv/mildew_2026-07-12.csv",
-  "csv/mildew_2026-07-13.csv",
-];
+// orange for temperature
+const temperatureColour = "#eb6834";
 
-async function loadCsv(file) {
-  const response = await fetch(file);
-  if (!response.ok) throw new Error(`${file}: ${response.status}`);
-  const text = await response.text();
-  const { data } = Papa.parse(text, {
-    header: true,
-    skipEmptyLines: true,
-    dynamicTyping: true,
-  });
-  return data.map((row) => ({
-    RealTimeLog: row["timestamp"],
-    Temperature: row["temp_c"],
-    Humidity: row["humidity_pct"],
-  }));
+// "Updated 14:30", or with the date when the reading isn't from today
+function updatedNote(sec) {
+  const d = new Date(sec * 1000);
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (d.toDateString() === new Date().toDateString()) return `Updated ${time}`;
+  const day = d.toLocaleDateString([], { day: "numeric", month: "short" });
+  return `Updated ${day} ${time}`;
+}
+
+// unix seconds -> "YYYY-MM-DD HH:MM:SS" (same text format your CSVs used)
+function toLocalText(sec) {
+  const d = new Date(sec * 1000);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// timestamp -> milliseconds, used for sorting.
+function toTime(ts) {
+  return new Date(String(ts).replace(" ", "T")).getTime();
 }
 
 // Magnus formula; returns null when the inputs are not usable
@@ -84,13 +80,39 @@ function calculateDewpoint(humidity, temperature) {
   return Math.round(((243.12 * gamma) / (17.62 - gamma)) * 10) / 10; // 1 decimal place
 }
 
-// timestamp -> milliseconds, used for sorting.
-function toTime(ts) {
-  return new Date(String(ts).replace(" ", "T")).getTime();
+async function loadHistory(hours, leafNodeID) {
+  const { reading } = await apiFetch(
+    `/api/history?hours=${hours}&leafNodeID=${leafNodeID}`,
+  );
+  return reading.map((r) => ({
+    RealTimeLog: toLocalText(r.realTimeLog ?? r.receivedAt),
+    Temperature: r.temperature,
+    Humidity: r.humidity,
+  }));
 }
 
-// orange for temperature
-const temperatureColour = "#eb6834";
+const loadLatest = (leafNodeID) =>
+  apiFetch(`/api/leafnodes/${leafNodeID}/details`);
+
+async function loadAlerts() {
+  const { alerts } = await apiFetch("/api/alerts");
+  return alerts;
+}
+
+// A node can have several open alerts (low, then moderate, then high each
+// raise one), so keep only the worst severity per node.
+function worstSeverityByNode(alerts) {
+  const worst = new Map();
+  for (const alert of alerts) {
+    for (const { leafNodeID } of alert.leafNodes) {
+      worst.set(
+        leafNodeID,
+        Math.max(worst.get(leafNodeID) ?? -1, alert.alertSeverity),
+      );
+    }
+  }
+  return worst;
+}
 
 export default function Home() {
   // theme colours from themeConfig passed to the chart
@@ -112,49 +134,80 @@ export default function Home() {
   // thresholds for diseases
   const thresholds = MILDEW_THRESHOLDS[disease];
 
-  // load the CSV files, only when the time range changes
+  // newest reading for the selected node (null while loading)
+  const [latest, setLatest] = useState(null);
 
+  // for graphs
   useEffect(() => {
     let cancelled = false;
-    const files = timeRange === "24h" ? dayFiles : weekFileNames;
+    const hours = timeRange === "24h" ? 24 : 168;
 
-    async function load() {
-      // Promise.allSettled keeps results in the same order as `files`,
-      // and one missing file does not break the whole chart
-      const results = await Promise.allSettled(files.map(loadCsv));
-
-      // ignore the results if the user toggled away while loading
-      if (cancelled) return;
-
-      const loaded = [];
-      results.forEach((result, i) => {
-        if (result.status === "fulfilled") {
-          loaded.push(...result.value);
-        } else {
-          console.warn(`Skipped ${files[i]}:`, result.reason);
-        }
+    loadHistory(hours, node)
+      .then((rows) => {
+        if (!cancelled) setGraphReadings(rows);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) setGraphReadings([]);
       });
-
-      // drop rows with an unreadable timestamp, then put the readings in time order, so the files can arrive or be listed in any order
-      const sorted = loaded
-        .filter((r) => !Number.isNaN(toTime(r.RealTimeLog)))
-        .sort((a, b) => toTime(a.RealTimeLog) - toTime(b.RealTimeLog));
-
-      // Remove duplicates. If two files contain the same
-      // Reading (same timestamp) only one is kept.
-      const unique = [
-        ...new Map(sorted.map((r) => [toTime(r.RealTimeLog), r])).values(),
-      ];
-
-      // all readings, duplicates removed, for both 24h and 7 days
-      setGraphReadings(unique);
-    }
-    load().catch(console.error);
 
     return () => {
       cancelled = true;
     };
-  }, [timeRange]);
+  }, [timeRange, node]);
+
+  // For temp and humidity card values
+  useEffect(() => {
+    let cancelled = false;
+    setLatest(null); // don't show the previous node's values while loading
+
+    async function refresh() {
+      try {
+        const data = await loadLatest(node);
+        if (!cancelled) setLatest(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    refresh();
+    const id = setInterval(refresh, 60_000); // pick up new readings every minute
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [node]);
+
+  const [alerts, setAlerts] = useState([]);
+
+  /// for alerts
+  useEffect(() => {
+    let cancelled = false;
+
+    async function refresh() {
+      try {
+        const data = await loadAlerts();
+        if (!cancelled) setAlerts(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    refresh();
+    const id = setInterval(refresh, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []); // not node-specific, the banner covers every node
+
+  // [leafNodeID, worst open severity], worst first
+  const nodeRisks = [...worstSeverityByNode(alerts).entries()].sort(
+    (a, b) => b[1] - a[1] || a[0] - b[0],
+  );
+  const needAttention = nodeRisks.filter(([, severity]) => severity >= 1);
+  const countAt = (severity) =>
+    nodeRisks.filter(([, s]) => s === severity).length;
 
   const graphHumidity = graphReadings.map((reading) => ({
     time: reading.RealTimeLog,
@@ -182,28 +235,37 @@ export default function Home() {
   });
 
   // ------ Latest reading cards ------
-  // the readings are sorted by time, so the last one is the newest (undefined while still loading)
-  const latest = graphReadings[graphReadings.length - 1];
+  // the selected node's newest reading from the backend (latest is null while it loads,
+  // and a value is null when the node hasn't sent one yet)
+  const temperature = latest?.readings.temperature;
+  const humidity = latest?.readings.humidity;
+
+  // when that reading was taken
+  const lastReadingNote = !latest
+    ? "Loading…"
+    : latest.lastReadingAt == null
+      ? "No readings yet"
+      : updatedNote(latest.lastReadingAt);
 
   // e.g. "powdery risk zone", the same shaded zones as the charts below
   const zoneName = `${thresholds.label.toLowerCase()} risk zone`;
 
   // one card for each reading the leaf nodes measure, using the same rules as ConditionTimeline.
-  // ?. because latest is undefined until the CSV has loaded (undefined >= 15 is just false, no crash)
+  // A missing value is null, and null >= 15 is just false, no crash
   const metrics = [
     {
       title: "TEMPERATURE",
-      value: latest?.Temperature,
+      value: temperature ?? "–",
       unit: "°C",
       // in the risk zone when it's between the disease's min and max
-      atRisk: latest?.Temperature >= thresholds.temperature.min && latest?.Temperature <= thresholds.temperature.max,
+      atRisk: temperature >= thresholds.temperature.min && temperature <= thresholds.temperature.max,
     },
     {
       title: "HUMIDITY",
-      value: latest?.Humidity,
+      value: humidity ?? "–",
       unit: "%",
       // in the risk zone when it's above the disease's min
-      atRisk: latest?.Humidity > thresholds.humidity.min,
+      atRisk: humidity > thresholds.humidity.min,
     },
   ];
 
@@ -220,22 +282,32 @@ export default function Home() {
         </Typography.Text>
       </Flex>
 
-      {/* alerts banner. TODO build it from the active alerts (same data as the Alerts page) */}
+      {/* alerts banner, built from the open alerts (same data as the Alerts page) */}
       <Alert
-        type="warning"
+        type={needAttention.length > 0 ? "warning" : "success"}
         showIcon
-        title="2 areas need attention"
+        title={
+          needAttention.length > 0
+            ? `${needAttention.length} ${needAttention.length === 1 ? "area needs" : "areas need"} attention`
+            : "No areas need attention"
+        }
         description={
-          <Flex vertical gap={8}>
-            {/* alert details */}
-            <span>LN 2 is at high risk of downy mildew.</span>
-            {/* alerts severity breakdown */}
-            <Flex gap={4} wrap>
-              <Tag color="red">1 High</Tag>
-              <Tag color="orange">1 Moderate</Tag>
-              <Tag color="green">4 Low</Tag>
+          needAttention.length > 0 ? (
+            <Flex vertical gap={8}>
+              {/* one line per node at moderate or high risk */}
+              {needAttention.map(([id, severity]) => (
+                <span key={id}>
+                  LN {id} is at {severityLabels[severity]} risk of mildew.
+                </span>
+              ))}
+              {/* severity breakdown */}
+              <Flex gap={4} wrap>
+                <Tag color="red">{countAt(2)} High</Tag>
+                <Tag color="orange">{countAt(1)} Moderate</Tag>
+                <Tag color="green">{countAt(0)} Low</Tag>
+              </Flex>
             </Flex>
-          </Flex>
+          ) : undefined
         }
       />
 
@@ -276,28 +348,30 @@ export default function Home() {
         >
           {metrics.map((metric) => (
             <Card key={metric.title}>
-              {/* loading shows a grey placeholder until the CSV arrives; precision={1} = one decimal */}
+              {/* loading shows a grey placeholder until the reading arrives; precision={1} = one decimal */}
               <Statistic
                 title={metric.title}
                 value={metric.value}
-                suffix={metric.unit}
+                suffix={
+                  typeof metric.value === "number" ? metric.unit : undefined
+                }
                 precision={1}
                 loading={!latest}
               />
-              {/* orange when the reading is inside the selected disease's risk zone */}
-              <Typography.Text type={metric.atRisk ? "warning" : "secondary"}>
-                {metric.atRisk ? `In the ${zoneName}` : `Outside the ${zoneName}`}
-              </Typography.Text>
+              {/* orange when the reading is inside the selected disease's risk zone; nothing to say without a reading */}
+              {typeof metric.value === "number" && (
+                <Typography.Text type={metric.atRisk ? "warning" : "secondary"}>
+                  {metric.atRisk ? `In the ${zoneName}` : `Outside the ${zoneName}`}
+                </Typography.Text>
+              )}
             </Card>
           ))}
         </div>
 
-        {/* when the cards' reading was taken: "2026-07-13T23:55:00" -> "2026-07-13 23:55" */}
-        {latest && (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Latest reading: {String(latest.RealTimeLog).replace("T", " ").slice(0, 16)}
-            </Typography.Text>
-        )}
+        {/* when the cards' reading was taken: "Updated 14:30" */}
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          {lastReadingNote}
+        </Typography.Text>
 
         {/* chart controls, one row that applies to all charts */}
         <Flex justify="space-between" align="center" wrap gap="small">

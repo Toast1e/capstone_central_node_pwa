@@ -3,6 +3,9 @@
 // React and NextJS
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { renameCentralNode } from "@/lib/centralNode";
+
+
 
 // UI Libraries mostly Ant design libraries
 import { Avatar, Button, Card, Flex, Input, Segmented, Space, Typography, theme } from "antd";
@@ -28,6 +31,10 @@ const themeOptions = [
 // }));
 
 export default function Profile() {
+
+    const [saving,setSaving] = useState(false);
+    const [error,setError] = useState(null);
+
     // theme colours from themeConfig.js
     const { token } = theme.useToken();
 
@@ -55,10 +62,20 @@ export default function Profile() {
     const nameChanged = trimmedName !== "" && trimmedName !== username;
 
     // save the new name, then go back to showing the saved name
-    function saveName() {
-        updateSetting("username", trimmedName);
-        setNewName(null);
-    }
+    
+   async function saveName() {
+       setSaving(true);
+       setError(null);
+       try {
+           const updated = await renameCentralNode(trimmedName);  // { centralNodeID, name }
+           updateSetting("username", updated.name);               // use the name the API returns
+           setNewName(null);
+       } catch (err) {
+           setError("Could not save the name. Check your connection and try again.");
+       } finally {
+           setSaving(false);
+       }
+   }
 
     return (
         <Flex vertical gap="large">

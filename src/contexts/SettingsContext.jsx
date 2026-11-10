@@ -2,10 +2,11 @@
 
 // React and NextJS
 import {createContext, useContext, useEffect, useSyncExternalStore} from "react";
+import { getCentralNodeName } from "@/lib/centralNode";
 
 // ------ App settings ------
 // saved on the current device so they survive a refresh
-// TODO save username and readingInterval to backend
+// TODO save readingInterval to backend (username is loaded from the backend and saved by the Profile page)
 
 //name settings are saved under in browser's storage
 const STORAGE_KEY = "vitisense-settings";
@@ -59,6 +60,13 @@ function parseSettings(text) {
     }
 }
 
+// change one setting and save them all; saving tells React, which redraws the app.
+// It builds on what is saved right now, so a slow answer from the backend can't
+// overwrite a theme change made in the meantime
+function updateSetting(key, value) {
+    saveSettingsText(JSON.stringify({ ...parseSettings(readSettingsText()), [key]: value }));
+}
+
 // --- the device's dark mode ---
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -85,10 +93,14 @@ export function SettingsProvider({ children }) {
     // Step 2: true if the device itself is in dark mode (the server assumes light)
     const systemDark = useSyncExternalStore(subscribeToDeviceDark, readDeviceDark, () => false);
 
-    // Step 3: change one setting and save them all; saving tells React, which redraws the app
-    function updateSetting(key, value) {
-        saveSettingsText(JSON.stringify({ ...settings, [key]: value }));
-    }
+    // Step 3: get the central node's name from the backend (it is saved by the Profile page)
+    useEffect(() => {
+        getCentralNodeName()
+            .then((name) => updateSetting("username", name))
+            .catch(() => {
+                // offline or API down: keep the last saved name (or the default)
+            });
+    }, []);
 
     // Step 4: Light or dark mode
     const isDark = settings.themeMode === "dark" || (settings.themeMode === "system" && systemDark);
