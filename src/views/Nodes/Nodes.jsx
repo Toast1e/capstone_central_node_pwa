@@ -9,11 +9,10 @@ import { RiCpuLine, RiArrowRightSLine } from "@remixicon/react";
 
 // Our own components and API calls
 import LeafNodeModal from "./LeafNodeModal";
-import { getCentralNode } from "@/lib/centralNode";
+import { getCentralNode, getReceiverUptime } from "@/lib/centralNode";
 import {
     clearLeafNodeCoordinates,
     getLeafNodeCards,
-    getLeafNodeUptime,
     renameLeafNode,
     updateLeafNodeCoordinates,
 } from "@/lib/nodes";
@@ -32,24 +31,21 @@ function formatTime(unixSeconds) {
     return new Date(unixSeconds * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-// seconds -> "14 days", "5 hours", "12 min" or "under 1 min"
+// seconds -> "14 days", "5 hours" or "12 min"
 function formatUptime(seconds) {
     if (seconds == null) return "Unknown";
     const days = Math.floor(seconds / 86400);
     if (days >= 1) return `${days} ${days === 1 ? "day" : "days"}`;
     const hours = Math.floor(seconds / 3600);
     if (hours >= 1) return `${hours} ${hours === 1 ? "hour" : "hours"}`;
-    const minutes = Math.floor(seconds / 60);
-    return minutes >= 1 ? `${minutes} min` : "under 1 min";
+    return `${Math.floor(seconds / 60)} min`;
 }
 
-// what the card and pop-up say for a node's uptime
-// uptime: undefined while it's being worked out, null when it can't be, else { seconds, atLeast }
-function uptimeText(node, uptime) {
-    if (node.connection === "NONE") return "Offline";
-    if (uptime === undefined) return "…";
-    if (uptime === null) return "Unknown";
-    return uptime.atLeast ? `Over ${formatUptime(uptime.seconds)}` : formatUptime(uptime.seconds);
+// what the central node card says for the LoRa receiver's uptime (see getReceiverUptime)
+function receiverUptimeText(receiver) {
+    if (!receiver) return "Unknown";
+    if (receiver.stoppedFor != null) return `Not running (no heartbeat for ${formatUptime(receiver.stoppedFor)})`;
+    return formatUptime(receiver.uptimeSeconds);
 }
 
 export default function Nodes() {
@@ -59,9 +55,8 @@ export default function Nodes() {
     // in state so an edit shows straight away
     const [leafNodes, setLeafNodes] = useState([]);
 
-    // how long each leaf node has been up, by leafNodeID (see uptimeText for the values).
-    // Worked out after the cards show, because it needs each node's readings
-    const [uptimes, setUptimes] = useState({});
+    // the LoRa receiver's uptime (see getReceiverUptime), null if it couldn't be loaded
+    const [receiver, setReceiver] = useState(null);
 
     // true if the backend couldn't be reached
     const [failed, setFailed] = useState(false);
@@ -74,23 +69,18 @@ export default function Nodes() {
         // if the page closes before the answer arrives, ignore the answer
         let ignore = false;
 
-        Promise.all([getCentralNode(), getLeafNodeCards()])
-            .then(([central, { serverTime, leafNodes: cards }]) => {
+        Promise.all([
+            getCentralNode(),
+            getLeafNodeCards(),
+            // the uptime is a nice-to-have: if it can't be loaded the page still opens, saying "Unknown"
+            getReceiverUptime().catch(() => null),
+        ])
+            .then(([central, cards, receiverUptime]) => {
                 if (ignore) return;
                 setCentralNode(central);
+                setReceiver(receiverUptime);
                 // lastSeen is the time text the cards show
                 setLeafNodes(cards.map((node) => ({ ...node, lastSeen: formatTime(node.lastConnectedAt) })));
-
-                // then each online node's uptime, shown as soon as it arrives
-                cards
-                    .filter((node) => node.connection !== "NONE")
-                    .forEach((node) => {
-                        getLeafNodeUptime(node, serverTime)
-                            .catch(() => null) // couldn't get its readings: "Unknown"
-                            .then((uptime) => {
-                                if (!ignore) setUptimes((current) => ({ ...current, [node.leafNodeID]: uptime }));
-                            });
-                    });
             })
             .catch(() => {
                 if (!ignore) setFailed(true);
@@ -190,7 +180,11 @@ export default function Nodes() {
                       <Typography.Title level={4} style={{margin:0}}>{centralNode.name}</Typography.Title>
                       {/* central node basic info */}
                       <Typography.Text type="secondary">
-                          Description: {centralNode.description} 
+                          Description: {centralNode.description}
+                      </Typography.Text>
+                      {/* how long the LoRa receiver plugged into the Pi has been running */}
+                      <Typography.Text type="secondary">
+                          LoRa receiver uptime: {receiverUptimeText(receiver)}
                       </Typography.Text>
 
                   </Flex>
@@ -220,7 +214,6 @@ export default function Nodes() {
                                   <Flex vertical>
                                       <Typography.Text strong>{node.leafNodeName}</Typography.Text>
                                       <Typography.Text>Battery {node.leafNodeBattery}%</Typography.Text>
-                                      <Typography.Text>Uptime {uptimeText(node, uptimes[node.leafNodeID])}</Typography.Text>
                                       <Typography.Text type="secondary">
                                           Connection: {node.connection}
                                           {node.lastSeen && ` ${node.lastSeen}`} {/*only if time available*/}
@@ -245,7 +238,6 @@ export default function Nodes() {
                   key={selectedNode.leafNodeID}
                   node={selectedNode}
                   status={connectionStatus[selectedNode.connection]}
-                  uptime={uptimeText(selectedNode, uptimes[selectedNode.leafNodeID])}
                   leafNodes={leafNodes}
                   open={modalOpen}
                   onClose={() => setModalOpen(false)}

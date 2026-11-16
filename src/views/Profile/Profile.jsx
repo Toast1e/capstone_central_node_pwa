@@ -11,9 +11,10 @@ import { renameCentralNode } from "@/lib/centralNode";
 import { Avatar, Button, Card, Flex, Input, Segmented, Space, Typography, theme } from "antd";
 import { RiLogoutBoxRLine, RiMoonLine, RiRouterLine, RiSmartphoneLine, RiSunLine } from "@remixicon/react";
 
-// Our own contexts
+// Our own contexts and components
 import { useSettings } from "@/contexts/SettingsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import OfflineCard from "./OfflineCard";
 
 // ------ Setting options ------
 // the 3 choices i.e light or dark or device settings
@@ -156,6 +157,9 @@ export default function Profile() {
                     */}
                 </Flex>
             </Card>
+
+            {/* whether the app and its readings are saved on this phone for use without a connection */}
+            <OfflineCard />
 
             {/* sign out of the central node */}
             <Button danger size="large" block icon={<RiLogoutBoxRLine size={18} />} onClick={handleLogout}>

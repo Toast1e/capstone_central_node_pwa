@@ -8,6 +8,17 @@ import { useState } from "react";
 import { WifiOutlined, DisconnectOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useConnection } from "@/contexts/ConnectionContext";
 import { useSettings } from "@/contexts/SettingsContext";
+import { useOfflineCopy } from "@/lib/offlineCopy";
+
+// what the page says about the copy of the app saved on the phone (see offlineCopy.js).
+// Nothing is said while it's still being checked.
+const OFFLINE_COPY_NOTES = {
+  saving: "Saving the app to this phone…",
+  saved: "Saved on this phone. It opens without a connection.",
+  temporary: "Private window: the app is only saved until this window is closed.",
+  failed: "The app couldn't be saved to this phone. It will try again next time.",
+  unsupported: "The app can't be saved on this phone: it has to be opened over HTTPS.",
+};
 
 export default function Login() {
   const { login, loading } = useAuth();
@@ -15,6 +26,8 @@ export default function Login() {
   const [error, setError] = useState(null);
   const { status } = useConnection();
   const {username} = useSettings(); //central nodes' name from profile page
+  // whether the app will open later without a connection
+  const offlineCopyNote = OFFLINE_COPY_NOTES[useOfflineCopy()];
 
   const onFinish = async ({password,remember}) => {
     setError(null);
@@ -65,6 +78,12 @@ export default function Login() {
               <Form.Item>
                 <Flex vertical align="center" justify="center" gap="small">
                   <Alert icon={connectionStatus[status].icon} showIcon title={connectionStatus[status].title} type={connectionStatus[status].type} />
+                  {/* so it's known, while still connected, whether the app will open later without a connection */}
+                  {offlineCopyNote && (
+                    <Typography.Text type="secondary" style={{ fontSize: 12, textAlign: "center" }}>
+                      {offlineCopyNote}
+                    </Typography.Text>
+                  )}
                 </Flex>
               </Form.Item>
 

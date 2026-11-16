@@ -4,12 +4,17 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { API_URL, apiFetch } from "@/lib/api";
+import { markReadingsSaved } from "@/lib/savedData";
 
 const PING_URL = "/";
 const PING_INTERVAL_MS = 5000; // wait between next ping from phone to central node.
 const PING_TIMEOUT_MS = 3000; // wait for 3 seconds until connection timesout and state gets switched.
 
-// Requests everything Home can display, so the service worker's NetworkFirst rule (sw.js) caches it for offline use.
+// While the central node is in reach, the readings saved on the phone are topped up this often,
+// whichever page is open (even the login page), so they're recent when the connection goes
+const SAVE_EVERY_MS = 5 * 60 * 1000;
+
+// Requests everything Home can display, so the service worker's NetworkFirst rule (sw.js) saves it for offline use.
 // The URLs must match Home.jsx exactly (same path, same parameter order), otherwise the cache keys differ and offline misses them.
 // Node IDs come from the API, so any number of leaf nodes works.
 async function warmCache() {
@@ -27,6 +32,8 @@ async function warmCache() {
 
         // failures are ignored: one bad request must not stop the others, and offline there is nothing to warm
         await Promise.allSettled(paths.map((path) => fetch(`${API_URL}${path}`)));
+        // only a service worker saves the answers (none on plain http, see the README)
+        if (navigator.serviceWorker?.controller) markReadingsSaved();
         return true;
     } catch {
         // status call failed (API down or still starting): nothing to warm, the caller retries on the next ping
@@ -46,7 +53,7 @@ export function ConnectionProvider({ children }) {
     useEffect(() => {
         let cancelled = false;
         let timer;
-        let warmed = false;  // so the cache is only warmed once per connection, not on every ping
+        let warmedAt = 0;    // when the cache was last warmed, 0 = not since (re)connecting
         let warming = false; // a warm-up is in flight: don't start a second one
 
         async function ping() {
@@ -70,13 +77,14 @@ export function ConnectionProvider({ children }) {
             if (cancelled) return;
             setStatus(reachable ? "connected" : "disconnected");
 
-            // warmed = the cache was filled since we last (re)connected; stays false until warmCache succeeds, so a failed attempt is retried
+            // warm the cache on (re)connecting, then every SAVE_EVERY_MS. warmedAt only moves when
+            // warmCache succeeds, so a failed attempt is retried on the next ping
             if (!reachable) {
-                warmed = false;
-            } else if (!warmed && !warming) {
+                warmedAt = 0;
+            } else if (!warming && Date.now() - warmedAt >= SAVE_EVERY_MS) {
                 warming = true;
                 warmCache().then((ok) => {
-                    warmed = ok;
+                    if (ok) warmedAt = Date.now();
                     warming = false;
                 });
             }

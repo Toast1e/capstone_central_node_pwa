@@ -35,8 +35,15 @@ body {
   touch-action: pan-x pan-y;
 }
 
+/* The chart library stops the page scrolling under a finger that starts on the
+   chart. Up and down is given back to the page, sideways still moves the
+   chart's tooltip. !important because the library sets it on the element itself. */
+.chartTouch canvas {
+  touch-action: pan-y !important;
+}
+
 /* Charts: long-pressing them doesn't select their text or open the
-   copy/look-up menu, so the touch can only scroll */
+   copy/look-up menu */
 .noSelect {
   user-select: none;
   -webkit-user-select: none;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Layout, Flex, Button, Typography } from "antd";
+import { Layout, Flex, Button, Typography, Alert } from "antd";
 import { useRouter, usePathname } from "next/navigation";
 import { RiHome5Line, RiUserLine, RiNotification2Line, RiCpuLine, RiExportLine } from "@remixicon/react";
 import "./MainLayout.css";
@@ -24,6 +24,11 @@ const NAV_ITEMS = [
   { key: "export", label: "Export", path: "/export", icon: <RiExportLine />, worksOffline: false },
   { key: "profile", label: "Profile", path: "/profile", icon: <RiUserLine />, worksOffline: true },
 ];
+
+// e.g. "Alerts, Nodes and Export". en-GB because Safari adds a comma before "and" for en-ZA.
+const ONLINE_ONLY_PAGES = new Intl.ListFormat("en-GB", { type: "conjunction" }).format(
+  NAV_ITEMS.filter((item) => !item.worksOffline).map((item) => item.label)
+);
 
 export default function MainLayout({ children }) {
   const router = useRouter();
@@ -55,7 +60,19 @@ export default function MainLayout({ children }) {
         </Flex>
       </Header>
 
-      <Content className="content">{children}</Content>
+      <Content className="content">
+        {/* says where the readings come from with no connection, and why some tabs are greyed out */}
+        {status === "disconnected" && (
+          <Alert
+            type="info"
+            showIcon
+            title="No connection to the central node"
+            description={`You're seeing the readings saved on this phone. ${ONLINE_ONLY_PAGES} are unavailable until you reconnect.`}
+            style={{ marginBottom: 24 }}
+          />
+        )}
+        {children}
+      </Content>
 
       {/* Bottom app bar */}
       <Footer className="app-bar">

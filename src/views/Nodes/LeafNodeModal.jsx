@@ -14,10 +14,8 @@ import { getLeafNodeDetails } from "./mockNodeDetails";
 
 /**
  * modal pop-up with one leaf node's details and a button to a mock map of where it is.
- *
- * uptime  how long the node has been up, as text (worked out by the Nodes page)
  */
-export default function LeafNodeModal({ node, status, uptime, leafNodes, open, onClose, onSave }) {
+export default function LeafNodeModal({ node, status, leafNodes, open, onClose, onSave }) {
     // the node's placeholder details (signal, last reading, map position), null if it has none
     const details = getLeafNodeDetails(node.leafNodeID);
 
@@ -98,7 +96,6 @@ export default function LeafNodeModal({ node, status, uptime, leafNodes, open, o
                         column={1}
                         items={[
                             { key: "battery", label: "Battery", children: `${node.leafNodeBattery}%` },
-                            { key: "uptime", label: "Uptime", children: uptime },
                             {
                                 key: "signal",
                                 label: "Signal",

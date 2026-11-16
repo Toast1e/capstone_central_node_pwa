@@ -178,10 +178,8 @@ export default function ThresholdGraph({
       {chart === null ? (
         <Typography.Text type="secondary">No readings to show.</Typography.Text>
       ) : (
-        // The chart is for looking at only: it ignores touches, so a swipe that starts
-        // on it scrolls the page. (The chart's canvas sets touch-action: none, which
-        // otherwise traps the swipe in the chart.) This also switches off the tooltip.
-        <div style={{ pointerEvents: "none" }}>
+        // chartTouch: up and down scrolls the page, sideways moves the tooltip (see globals.css)
+        <div className="chartTouch">
           <Line
             // FIX: remount when the range changes instead of morphing between two different lines
             key={timeRange}

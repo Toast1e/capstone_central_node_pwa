@@ -1,7 +1,7 @@
 "use client";
 
 // React and NextJS
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // own components and data
 import { MILDEW_THRESHOLDS} from "@/data/mildewThresholds";
@@ -9,7 +9,8 @@ import ConditionTimeline from "@/components/ConditionTimeline/ConditionTimeline"
 import ThresholdGraph from "@/components/ThresholdGraph/ThresholdGraph";
 import { useSettings } from "@/contexts/SettingsContext";
 
-import { apiFetch } from "@/lib/api";
+// the readings saved on the phone first, then the central node's (works offline too)
+import { useSavedThenLive } from "@/hooks/useSavedThenLive";
 
 // UI Libraries mostly Ant design libraries
 import {
@@ -83,23 +84,13 @@ function calculateDewpoint(humidity, temperature) {
   return Math.round(((243.12 * gamma) / (17.62 - gamma)) * 10) / 10; // 1 decimal place
 }
 
-async function loadHistory(hours, leafNodeID) {
-  const { reading } = await apiFetch(
-    `/api/history?hours=${hours}&leafNodeID=${leafNodeID}`,
-  );
+// /api/history's readings -> the rows the charts and timeline take
+function toGraphRows(reading) {
   return reading.map((r) => ({
     RealTimeLog: toLocalText(r.realTimeLog ?? r.receivedAt),
     Temperature: r.temperature,
     Humidity: r.humidity,
   }));
-}
-
-const loadLatest = (leafNodeID) =>
-  apiFetch(`/api/leafnodes/${leafNodeID}/details`);
-
-async function loadAlerts() {
-  const { alerts } = await apiFetch("/api/alerts");
-  return alerts;
 }
 
 // A node can have several open alerts (low, then moderate, then high each
@@ -131,78 +122,23 @@ export default function Home() {
   const [disease, setDisease] = useState("powdery");
   const [timeRange, setTimeRange] = useState("24h");
 
-  // readings shown on the temperature and humidity charts
-  const [graphReadings, setGraphReadings] = useState([]);
-
   // thresholds for diseases
   const thresholds = MILDEW_THRESHOLDS[disease];
 
-  // newest reading for the selected node (null while loading)
-  const [latest, setLatest] = useState(null);
+  // Each of these shows what's saved on the phone straight away, then the
+  // central node's answer. The paths must match warmCache in ConnectionContext
+  // exactly (same parameter order), or there's no saved copy to show offline.
 
-  // for graphs
-  useEffect(() => {
-    let cancelled = false;
-    const hours = timeRange === "24h" ? 24 : 168;
+  // readings shown on the charts and timeline ([] until they arrive)
+  const hours = timeRange === "24h" ? 24 : 168;
+  const history = useSavedThenLive(`/api/history?hours=${hours}&leafNodeID=${node}`);
+  const graphReadings = history ? toGraphRows(history.reading) : [];
 
-    loadHistory(hours, node)
-      .then((rows) => {
-        if (!cancelled) setGraphReadings(rows);
-      })
-      .catch((err) => {
-        console.error(err);
-        if (!cancelled) setGraphReadings([]);
-      });
+  // newest reading for the selected node (null while loading), new readings picked up every minute
+  const latest = useSavedThenLive(`/api/leafnodes/${node}/details`, 60_000) ?? null;
 
-    return () => {
-      cancelled = true;
-    };
-  }, [timeRange, node]);
-
-  // For temp and humidity card values
-  useEffect(() => {
-    let cancelled = false;
-    setLatest(null); // don't show the previous node's values while loading
-
-    async function refresh() {
-      try {
-        const data = await loadLatest(node);
-        if (!cancelled) setLatest(data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    refresh();
-    const id = setInterval(refresh, 60_000); // pick up new readings every minute
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [node]);
-
-  const [alerts, setAlerts] = useState([]);
-
-  /// for alerts
-  useEffect(() => {
-    let cancelled = false;
-
-    async function refresh() {
-      try {
-        const data = await loadAlerts();
-        if (!cancelled) setAlerts(data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    refresh();
-    const id = setInterval(refresh, 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []); // not node-specific, the banner covers every node
+  // open alerts, not node-specific: the banner covers every node
+  const alerts = useSavedThenLive("/api/alerts", 60_000)?.alerts ?? [];
 
   // [leafNodeID, worst open severity], worst first
   const nodeRisks = [...worstSeverityByNode(alerts).entries()].sort(

@@ -1,4 +1,5 @@
 import { ExpirationPlugin, NetworkFirst, Serwist } from "serwist";
+import { API_CACHE_NAME } from "../lib/offlineConfig";
 
 // Only what the Home and Profile pages read (GET requests).
 // Exact paths: the query string (hours, leafNodeID) isn't part of url.pathname,
@@ -43,7 +44,8 @@ const serwist = new Serwist({
         {
             matcher: isCachedData,
             handler: new NetworkFirst({
-                cacheName: "vitisense-api-data",
+                // the app reads this too, to show what's saved before the live answer (src/lib/savedData.js)
+                cacheName: API_CACHE_NAME,
                 networkTimeoutSeconds: 3,
                 // 6 nodes x 2 chart ranges (12) + 6 node details + alerts + centralnode = 20,
                 // so 20 would evict something. 30 leaves headroom.
