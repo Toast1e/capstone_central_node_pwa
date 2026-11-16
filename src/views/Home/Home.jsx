@@ -29,6 +29,9 @@ import { RiArrowLeftLine, RiArrowRightLine } from "@remixicon/react";
 // TODO replace with the leaf nodes from the backend
 const totalNodes = 6;
 
+// the leaf node Home shows when it opens: leaf node 5 ("leaf-5")
+const DEFAULT_NODE_ID = 5;
+
 const severityLabels = { 2: "high", 1: "moderate", 0: "low" };
 
 // ------ Chart options ------
@@ -121,8 +124,8 @@ export default function Home() {
   // the central node's name from the Profile page settings
   const { username } = useSettings();
 
-  //which leaf node currently shown from 1 to totalNodes
-  const [node, setNode] = useState(1);
+  //which leaf node currently shown from 1 to totalNodes, starting on leaf node 5
+  const [node, setNode] = useState(DEFAULT_NODE_ID);
 
   // which disease's risk zones the charts show, and time period shown
   const [disease, setDisease] = useState("powdery");

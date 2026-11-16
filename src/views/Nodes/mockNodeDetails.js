@@ -43,19 +43,9 @@ const NODE_DETAILS = [
     },
 ];
 
-// pretends to ask the central node for one leaf node's details
-// takes a short moment, like a real request, so the loading animation shows
-export function fetchLeafNodeDetails(leafNodeID) {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            const details = NODE_DETAILS.find((node) => node.leafNodeID === leafNodeID);
-            if (details) {
-                resolve(details);
-            } else {
-                reject(new Error(`No details for leaf node ${leafNodeID}`));
-            }
-        }, 800);
-    });
+// one leaf node's placeholder details, or null if there are none for that node
+export function getLeafNodeDetails(leafNodeID) {
+    return NODE_DETAILS.find((node) => node.leafNodeID === leafNodeID) ?? null;
 }
 
 // layout of the mock farm map: vineyard blocks and every leaf node

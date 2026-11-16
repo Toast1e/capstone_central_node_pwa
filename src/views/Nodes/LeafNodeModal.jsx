@@ -1,7 +1,7 @@
 "use client";
 
 // React and NextJS
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 // UI Libraries mostly Ant design libraries
 import { Alert, Button, Descriptions, Flex, Modal, Tag, Typography } from "antd";
@@ -10,50 +10,24 @@ import { RiArrowLeftLine, RiMapPin2Line, RiPencilLine} from "@remixicon/react";
 // Our own components and data
 import FarmMap from "./FarmMap";
 import EditLeafNodeForm from "./EditLeafNodeForm";
-import { fetchLeafNodeDetails } from "./mockNodeDetails";
+import { getLeafNodeDetails } from "./mockNodeDetails";
 
 /**
  * modal pop-up with one leaf node's details and a button to a mock map of where it is.
+ *
+ * uptime  how long the node has been up, as text (worked out by the Nodes page)
  */
-export default function LeafNodeModal({ node, status, leafNodes, open, onClose, onSave }) {
-    // the node's full details once they've arrived
-    const [details, setDetails] = useState(null);
-
-    // true if the details couldn't be loaded
-    const [failed, setFailed] = useState(false);
+export default function LeafNodeModal({ node, status, uptime, leafNodes, open, onClose, onSave }) {
+    // the node's placeholder details (signal, last reading, map position), null if it has none
+    const details = getLeafNodeDetails(node.leafNodeID);
 
     // which view the pop-up shows: "details" or "map" or "edit"
     const [view, setView] = useState("details");
-
-    // still waiting for the details
-    const loading = details === null && !failed;
 
     // the other leaf nodes' names: the edited name can't be any of these
     const takenNames = leafNodes
         .filter((other) => other.leafNodeID !== node.leafNodeID)
         .map((other) => other.leafNodeName);
-
-    // ask for the node's details whenever the pop-up opens
-    useEffect(() => {
-        if (!open) return;
-
-        // if the pop-up closes before the answer arrives, ignore the answer
-        let ignore = false;
-
-        fetchLeafNodeDetails(node.leafNodeID)
-            .then((result) => {
-                if (ignore) return;
-                setDetails(result);
-                setFailed(false);
-            })
-            .catch(() => {
-                if (!ignore) setFailed(true);
-            });
-
-        return () => {
-            ignore = true;
-        };
-    }, [open, node.leafNodeID]);
 
     // save the changes, then go back to the details.
     // If saving fails the form stays open and shows why (see EditLeafNodeForm)
@@ -102,14 +76,12 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
                     <Tag color={status.colour}>{status.label}</Tag>
                 </Flex>
             }
-            // edit form doesn't need details so won't wait for them to load
-            loading={loading && view !== "edit"}
             footer={footer}
             centered
         >
-            {/* couldn't load the details */}
-            {failed && view !== "edit" &&(
-                <Alert type="error" showIcon title="Couldn't load this node's details. Close and try again." />
+            {/* no details for this node */}
+            {!details && view !== "edit" && (
+                <Alert type="error" showIcon title="There are no details for this node yet." />
             )}
 
             {/* details view */}
@@ -126,6 +98,7 @@ export default function LeafNodeModal({ node, status, leafNodes, open, onClose, 
                         column={1}
                         items={[
                             { key: "battery", label: "Battery", children: `${node.leafNodeBattery}%` },
+                            { key: "uptime", label: "Uptime", children: uptime },
                             {
                                 key: "signal",
                                 label: "Signal",

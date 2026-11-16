@@ -79,6 +79,7 @@ export default function Login() {
                 help={error}
               >
                 <Input.Password
+                  size="large"
                   placeholder="Password"
                   disabled={loading}
                   onChange={() => setError(null)}

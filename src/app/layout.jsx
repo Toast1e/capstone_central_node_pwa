@@ -17,9 +17,14 @@ export const metadata = {
   appleWebApp: { title: "VitiSense" },
 };
 
-// colours the phone's status bar and browser toolbar
 export const viewport = {
+  // colours the phone's status bar and browser toolbar
   themeColor: "#6B4C9A",
+  // the app can't be zoomed, and tapping a text box doesn't zoom in on it
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }) {

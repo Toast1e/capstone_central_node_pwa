@@ -7,9 +7,16 @@ const sharedTokens = {
     fontFamily: "var(--font-jakarta), sans-serif",
 }
 
+// iOS zooms in on a text box with text smaller than 16px when it's tapped,
+// so every text box in the app uses 16px text
+const noZoomInput = {inputFontSize: 16, inputFontSizeSM: 16, inputFontSizeLG: 16};
+
 const sharedComponents = {
     Card: {borderRadiusLG: 14},
     Button: {fontWeight: 600},
+    Input: noZoomInput,
+    InputNumber: noZoomInput,
+    DatePicker: noZoomInput,
 }
 
 // light mode theme

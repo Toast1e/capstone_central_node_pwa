@@ -27,6 +27,22 @@ body {
   color: var(--foreground);
 }
 
+/* The app can't be zoomed: pinch and double-tap zoom are off, scrolling still
+   works. The viewport tag in layout.jsx asks for this too, but iOS Safari
+   ignores that part of it. */
+html,
+body {
+  touch-action: pan-x pan-y;
+}
+
+/* Charts: long-pressing them doesn't select their text or open the
+   copy/look-up menu, so the touch can only scroll */
+.noSelect {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 /* page title uses serif but everything else the Jakarta font */
 h1, h2, h3, h4, h5{
   font-family: var(--font-fraunces), serif;

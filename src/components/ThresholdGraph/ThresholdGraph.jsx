@@ -173,83 +173,89 @@ export default function ThresholdGraph({
   const sparse = drawn.length / Math.max(seriesNames.length, 1) < 2;
 
   return (
-    <Card title={title} size="small">
+    // noSelect: long-pressing the card doesn't select its text (see globals.css)
+    <Card title={title} size="small" className="noSelect">
       {chart === null ? (
         <Typography.Text type="secondary">No readings to show.</Typography.Text>
       ) : (
-        <Line
-          // FIX: remount when the range changes instead of morphing between two different lines
-          key={timeRange}
-          data={drawn}
-          xField="time"
-          yField="value"
-          colorField="series"
-          height={320}
-          // the chart's own theme: "classicDark" has light text for dark backgrounds
-          theme={isDark ? "classicDark" : "classic"}
-          // thin 2px lines
-          style={{ lineWidth: 2 }}
-          // false = a point with no value leaves a gap, the line is not drawn across it
-          connectNulls={false}
-          // FIX: AntV animates between the old and new line path, and with many null gaps
-          // (the 24h view has mostly empty slots) that morph hits "Maximum recursion depth
-          // reached in equalizeSegments". No animation = no morph = no crash.
-          animate={false}
-          // dots only when there are too few readings to draw a line (see `sparse` above)
-          {...(sparse ? { point: { shapeField: "circle", sizeField: 3 } } : {})}
-          scale={{
-            // real time axis with a fixed start and end
-            x: {
-              type: "time",
-              domain: chart.domain.map((t) => new Date(t)),
-              nice: false,
-              tickCount: timeRange === "7d" ? 7 : 12,
-            },
-            y: { domain: yDomain, nice: false },
-            // each series always keeps its own colour
-            color: { domain: seriesNames, range: Object.values(colors) },
-          }}
-          axis={{
-            x: {
-              grid: false, // no vertical gridlines
-              labelFormatter: (t) => formatTick(new Date(t), timeRange),
-            },
-            y: {
-              // faint solid gridlines, so dashes only ever mean something
-              gridLineDash: [0, 0],
-              gridStroke: token.colorBorderSecondary,
-              gridStrokeOpacity: 1,
-              labelFormatter: (t) => `${t}${unit}`,
-            },
-          }}
-          // legend only when there's more than one line; the title names a single line
-          legend={
-            seriesNames.length > 1
-              ? { color: { position: "top", itemMarker: "square" } }
-              : false
-          }
-          tooltip={{
-            // each point is an average, so the heading shows the time it covers
-            title: (row) =>
-              `${formatTooltipTime(new Date(row.from))} to ${new Date(row.to).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}`,
-            items: [
-              (row) => ({
-                name: row.series,
-                value: row.value == null ? "no data" : `${row.value}${unit}`,
-              }),
-            ],
-          }}
-          // shaded risk zone behind the lines
-          annotations={[
-            {
-              type: "rangeY",
-              data: [riskZone],
-              yField: "from",
-              y1Field: "to",
-              style: { fill: token.colorWarning, fillOpacity: 0.15 },
-            },
-          ]}
-        />
+        // The chart is for looking at only: it ignores touches, so a swipe that starts
+        // on it scrolls the page. (The chart's canvas sets touch-action: none, which
+        // otherwise traps the swipe in the chart.) This also switches off the tooltip.
+        <div style={{ pointerEvents: "none" }}>
+          <Line
+            // FIX: remount when the range changes instead of morphing between two different lines
+            key={timeRange}
+            data={drawn}
+            xField="time"
+            yField="value"
+            colorField="series"
+            height={320}
+            // the chart's own theme: "classicDark" has light text for dark backgrounds
+            theme={isDark ? "classicDark" : "classic"}
+            // thin 2px lines
+            style={{ lineWidth: 2 }}
+            // false = a point with no value leaves a gap, the line is not drawn across it
+            connectNulls={false}
+            // FIX: AntV animates between the old and new line path, and with many null gaps
+            // (the 24h view has mostly empty slots) that morph hits "Maximum recursion depth
+            // reached in equalizeSegments". No animation = no morph = no crash.
+            animate={false}
+            // dots only when there are too few readings to draw a line (see `sparse` above)
+            {...(sparse ? { point: { shapeField: "circle", sizeField: 3 } } : {})}
+            scale={{
+              // real time axis with a fixed start and end
+              x: {
+                type: "time",
+                domain: chart.domain.map((t) => new Date(t)),
+                nice: false,
+                tickCount: timeRange === "7d" ? 7 : 12,
+              },
+              y: { domain: yDomain, nice: false },
+              // each series always keeps its own colour
+              color: { domain: seriesNames, range: Object.values(colors) },
+            }}
+            axis={{
+              x: {
+                grid: false, // no vertical gridlines
+                labelFormatter: (t) => formatTick(new Date(t), timeRange),
+              },
+              y: {
+                // faint solid gridlines, so dashes only ever mean something
+                gridLineDash: [0, 0],
+                gridStroke: token.colorBorderSecondary,
+                gridStrokeOpacity: 1,
+                labelFormatter: (t) => `${t}${unit}`,
+              },
+            }}
+            // legend only when there's more than one line; the title names a single line
+            legend={
+              seriesNames.length > 1
+                ? { color: { position: "top", itemMarker: "square" } }
+                : false
+            }
+            tooltip={{
+              // each point is an average, so the heading shows the time it covers
+              title: (row) =>
+                `${formatTooltipTime(new Date(row.from))} to ${new Date(row.to).toLocaleTimeString("en-ZA", { hour: "2-digit", minute: "2-digit" })}`,
+              items: [
+                (row) => ({
+                  name: row.series,
+                  value: row.value == null ? "no data" : `${row.value}${unit}`,
+                }),
+              ],
+            }}
+            // shaded risk zone behind the lines
+            annotations={[
+              {
+                type: "rangeY",
+                data: [riskZone],
+                yField: "from",
+                y1Field: "to",
+                style: { fill: token.colorWarning, fillOpacity: 0.15 },
+              },
+            ]}
+          />
+        </div>
       )}
 
       {/* key for the shaded zone */}

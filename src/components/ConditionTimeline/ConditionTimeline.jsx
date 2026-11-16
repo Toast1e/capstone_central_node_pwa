@@ -249,7 +249,7 @@ export default function ConditionTimeline({
 
   if (points.length === 0) {
     return (
-      <Card title="When conditions favoured mildew" size="small">
+      <Card title="When conditions favoured mildew" size="small" className="noSelect">
         <Typography.Text type="secondary">No readings to show.</Typography.Text>
       </Card>
     );
@@ -290,7 +290,8 @@ export default function ConditionTimeline({
   const hasPartial = rows.some((row) => row.conditionCount >= 3);
 
   return (
-    <Card title="When conditions favoured mildew" size="small">
+    // noSelect: long-pressing the card doesn't select its text (see globals.css)
+    <Card title="When conditions favoured mildew" size="small" className="noSelect">
       <Flex vertical gap="small">
         {/* one row per disease */}
         {rows.map((row) => (
