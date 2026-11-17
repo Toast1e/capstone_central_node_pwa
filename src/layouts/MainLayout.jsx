@@ -42,18 +42,23 @@ export default function MainLayout({ children }) {
     <Layout className="layout">
       {/* Top app bar */}
       <Header className="top-app-bar">
-        <Flex align="center" className="top-app-bar-items" justify="space-between">
-          <Flex gap={"5pt"}>
-            <Text strong className="textSize">
-              {centralNode} |
+        <Flex align="center" className="top-app-bar-items" justify="space-between" gap="small">
+          {/* minWidth: 0 lets the central node's name shrink, so the bar never wraps onto a second line */}
+          <Flex gap={"5pt"} align="center" style={{ minWidth: 0 }}>
+            {/* a name too long to fit ends in "..." */}
+            <Text strong ellipsis className="textSize">
+              {centralNode}
             </Text>
 
-            <Text type={ display.type } strong className="textSize">
+            {/* the status and the page name always show in full, on one line */}
+            <Text strong className="textSize top-app-bar-fixed">|</Text>
+
+            <Text type={ display.type } strong className="textSize top-app-bar-fixed">
               { display.label }
             </Text>
           </Flex>
 
-          <Text strong className="textSize">
+          <Text strong className="textSize top-app-bar-fixed">
             {NAV_ITEMS.find((item) => pathname.startsWith(item.path))?.label}
           </Text>
 

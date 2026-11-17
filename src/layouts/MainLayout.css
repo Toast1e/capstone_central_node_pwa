@@ -68,6 +68,13 @@ body {
   max-width: 100%;
 }
 
+/* Never wrapped or squashed: the connection status and the page name. When
+   there isn't room, the central node's name gives way and ends in "..." */
+.top-app-bar-fixed {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* Stack the icon above the label */
 .app-bar-button {
   flex-direction: column;
